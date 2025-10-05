@@ -13,8 +13,7 @@ export default {
         'chrono-text': '#1F2A3A',
       },
       fontFamily: {
-        sans: ['Montserrat', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        display: ['Montserrat', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        outfit: ['Outfit', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         glass: '0 24px 60px rgba(15, 23, 42, 0.18)',
