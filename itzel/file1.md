@@ -17,7 +17,7 @@
 **Descripción:** Se aplica a temperaturas de 10 °c o menos y velocodad del viento 4.8 km/h.   servicio meteorológico nacional de EU
 **Fórmula:** $Wind Chill (F) = 35.74 + 0.6215T - 35.75(V^0.16) + 0.4275T(V^0.16)$
 
-**Uso en la aplicación:**  
+**Uso en la aplicación:**    
 
 
 
