@@ -149,7 +149,7 @@ export default function Home() {
       <div className="relative w-[1920px] h-[1080px]">
         <h1
           className="absolute left-[267px] top-[210px] text-[128px] font-outfit font-extrabold uppercase tracking-[0.35em] text-[#F4F7F8] drop-shadow-[0_0_25px_rgba(255,255,255,0.55)]"
-        >
+        > 
           CRONOWEATH
         </h1>
       </div>
