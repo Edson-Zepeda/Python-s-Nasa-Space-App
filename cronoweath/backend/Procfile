@@ -1,1 +1,1 @@
-web: PYTHONHOME=/app/.venv PYTHONPATH=/app/.venv/lib/python3.12:/app/.venv/lib/python3.12/site-packages uvicorn backend.app.main:app --host 0.0.0.0 --port  ${PORT:-8000} 
+web: /app/.venv/bin/python -m uvicorn backend.app.main:app --host 0.0.0.0 --port  ${PORT:-8000} 
