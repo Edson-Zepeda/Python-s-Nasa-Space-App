@@ -1,1 +1,1 @@
-web: PYTHONHOME=/install PYTHONPATH=/install/lib/python312.zip:/install/lib/python3.12/site-packages:/install/lib/python3.12:/install/lib/python3.12/lib-dynload uvicorn backend.app.main:app --host 0.0.0.0 --port  ${PORT:-8000} 
+web: PYTHONHOME=/app/.venv PYTHONPATH=/app/.venv/lib/python3.12:/app/.venv/lib/python3.12/site-packages uvicorn backend.app.main:app --host 0.0.0.0 --port  ${PORT:-8000} 
