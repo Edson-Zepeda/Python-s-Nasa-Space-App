@@ -1,4 +1,43 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
+import "./home-figma.css";
+
+const Home = () => {
+  const [selectedDate, setSelectedDate] = useState("");
+
+  const handleDateChange = (event) => {
+    setSelectedDate(event.target.value);
+  };
+
+  return (
+    <div className="figma-home">
+      <header className="figma-header">
+        <h1>CRONOWEATH</h1>
+      </header>
+      <main className="figma-container">
+        <div className="figma-search-box">
+          <label className="sr-only" htmlFor="figma-date-input">Selecciona una fecha</label>
+          <input
+            id="figma-date-input"
+            type="text"
+            placeholder="DD/MM/YYYY"
+            value={selectedDate}
+            onChange={handleDateChange}
+          />
+          <span className="figma-calendar-icon" aria-hidden="true" />
+        </div>
+      </main>
+      <footer className="figma-footer">
+        <p>Analyzing decades of NASA data</p>
+      </footer>
+    </div>
+  );
+};
+
+export default Home;
+
+/* --------------------------------------------------------------------------
+LEGACY IMPLEMENTATION (commented out for future integration)
+import { useEffect, useMemo, useState } from "react";
 import Calendar from "../components/Calendar.jsx";
 import "./home.css";
 
@@ -13,10 +52,10 @@ const PRESET_LOCATIONS = [
 
 const CONDITION_LABELS = {
   hot: "Muy caliente",
-  cold: "Muy frío",
+  cold: "Muy fr?o",
   windy: "Muy ventoso",
   wet: "Muy mojado",
-  muggy: "Muy incómodo",
+  muggy: "Muy inc?modo",
 };
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -192,7 +231,7 @@ export default function Home() {
           condition: defaultCondition,
         }));
       } catch (err) {
-        setConfigError(`No se pudo cargar la configuración: ${err.message}`);
+        setConfigError(`No se pudo cargar la configuraci?n: ${err.message}`);
       }
     }
     loadConfig();
@@ -209,7 +248,7 @@ export default function Home() {
 
   const applyLocation = (location, message = null) => {
     setHeroError(null);
-    setHeroMessage(message || `Ubicación establecida: ${location.label}`);
+    setHeroMessage(message || `Ubicaci?n establecida: ${location.label}`);
     setLocationLabel(location.label);
     setHeroInput(location.label);
     setHeroSuggestions(PRESET_LOCATIONS);
@@ -229,7 +268,7 @@ export default function Home() {
     event.preventDefault();
     const query = heroInput.trim();
     if (!query) {
-      setHeroError("Ingresa una ubicación para empezar.");
+      setHeroError("Ingresa una ubicaci?n para empezar.");
       return;
     }
 
@@ -242,21 +281,21 @@ export default function Home() {
     try {
       setResolvingLocation(true);
       setHeroError(null);
-      setHeroMessage("Buscando ubicación...");
+      setHeroMessage("Buscando ubicaci?n...");
       const matches = await geocodeLocation(query);
       if (matches.length === 0) {
         setHeroMessage(null);
-        setHeroError("No encontramos coincidencias. Intenta con otro nombre o especifica el país.");
+        setHeroError("No encontramos coincidencias. Intenta con otro nombre o especifica el pa?s.");
         setHeroSuggestions(PRESET_LOCATIONS);
         setHeroOpen(false);
         return;
       }
       setHeroSuggestions(matches);
       setHeroOpen(true);
-      setHeroMessage("Selecciona una opción de la lista");
+      setHeroMessage("Selecciona una opci?n de la lista");
     } catch (err) {
       setHeroMessage(null);
-      setHeroError(`No se pudo resolver la ubicación: ${err.message}`);
+      setHeroError(`No se pudo resolver la ubicaci?n: ${err.message}`);
     } finally {
       setResolvingLocation(false);
     }
@@ -264,33 +303,33 @@ export default function Home() {
 
   const handleUseMyLocation = () => {
     if (!navigator.geolocation) {
-      setHeroError("Tu navegador no soporta geolocalización.");
+      setHeroError("Tu navegador no soporta geolocalizaci?n.");
       return;
     }
     setResolvingLocation(true);
-    setHeroMessage("Obteniendo tu ubicación...");
+    setHeroMessage("Obteniendo tu ubicaci?n...");
     setHeroError(null);
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        applyLocation({ label: "Ubicación actual", lat: latitude, lon: longitude }, "Ubicación actual detectada");
+        applyLocation({ label: "Ubicaci?n actual", lat: latitude, lon: longitude }, "Ubicaci?n actual detectada");
         setResolvingLocation(false);
       },
       (geoError) => {
         setResolvingLocation(false);
         switch (geoError.code) {
           case geoError.PERMISSION_DENIED:
-            setHeroError("Permiso denegado para obtener tu ubicación.");
+            setHeroError("Permiso denegado para obtener tu ubicaci?n.");
             break;
           case geoError.POSITION_UNAVAILABLE:
-            setHeroError("Ubicación no disponible en este momento.");
+            setHeroError("Ubicaci?n no disponible en este momento.");
             break;
           case geoError.TIMEOUT:
-            setHeroError("La petición de ubicación expiró. Intenta nuevamente.");
+            setHeroError("La petici?n de ubicaci?n expir?. Intenta nuevamente.");
             break;
           default:
-            setHeroError("No se pudo obtener tu ubicación.");
+            setHeroError("No se pudo obtener tu ubicaci?n.");
         }
         setHeroMessage(null);
       }
@@ -437,7 +476,7 @@ export default function Home() {
     if (!result) {
       return (
         <div className="cw-placeholder-card">
-          Selecciona una ubicación y fecha, luego presiona “Calcular probabilidad”.
+          Selecciona una ubicaci?n y fecha, luego presiona ?Calcular probabilidad?.
         </div>
       );
     }
@@ -445,7 +484,7 @@ export default function Home() {
     if (result.type === "insufficient") {
       return (
         <div className="cw-placeholder-card">
-          {result.data.message || "No se encontró muestra suficiente para la combinación solicitada."}
+          {result.data.message || "No se encontr? muestra suficiente para la combinaci?n solicitada."}
         </div>
       );
     }
@@ -472,7 +511,7 @@ export default function Home() {
           <div className="cw-card-content">
             <div>
               <div className="cw-card-main">{lastQueryLocation}</div>
-              <div className="cw-card-footer">Datos promedio basados en el histórico consultado.</div>
+              <div className="cw-card-footer">Datos promedio basados en el hist?rico consultado.</div>
             </div>
             <div className="cw-weather-display">
               <svg className="cw-weather-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -480,7 +519,7 @@ export default function Home() {
                 <path d="M12.59 19.41A2 2 0 1 0 14 16H2" />
                 <path d="M17.73 10.73A2.5 2.5 0 1 1 19.5 12H2" />
               </svg>
-              <span className="cw-temperature">{temperatureValue != null ? `${Math.round(temperatureValue)}°${temperatureUnit}` : "--"}</span>
+              <span className="cw-temperature">{temperatureValue != null ? `${Math.round(temperatureValue)}?${temperatureUnit}` : "--"}</span>
               <div className="cw-temp-toggle">
                 <button type="button" className={temperatureUnit === "C" ? "active" : ""} onClick={() => setTemperatureUnit("C")}>
                   C
@@ -561,7 +600,7 @@ export default function Home() {
         <form className="cw-search-form" onSubmit={handleHeroSubmit}>
           <div className="cw-search-box">
             <label htmlFor="hero-location" className="sr-only">
-              Buscar ubicación
+              Buscar ubicaci?n
             </label>
             <input
               id="hero-location"
@@ -601,7 +640,7 @@ export default function Home() {
 
         <div className="cw-hero-actions">
           <button type="button" className="cw-primary-action" onClick={handleUseMyLocation} disabled={resolvingLocation}>
-            {resolvingLocation ? "Obteniendo ubicación..." : "Usar mi ubicación actual"}
+            {resolvingLocation ? "Obteniendo ubicaci?n..." : "Usar mi ubicaci?n actual"}
           </button>
           {heroMessage ? <span className="cw-hero-message">{heroMessage}</span> : null}
           {heroError ? <span className="cw-hero-error">{heroError}</span> : null}
@@ -641,10 +680,10 @@ export default function Home() {
       <section className="cw-analysis">
         <div className="cw-analysis-inner">
           <div className="cw-analysis-header">
-            <p>Configuración avanzada</p>
+            <p>Configuraci?n avanzada</p>
             <h2>{locationLabel}</h2>
             <p>
-              Ventana ±{config?.window_days ?? 15} días • {config?.lastN_years ?? 20} años analizados
+              Ventana ?{config?.window_days ?? 15} d?as ? {config?.lastN_years ?? 20} a?os analizados
             </p>
           </div>
 
@@ -656,7 +695,7 @@ export default function Home() {
 
           <form className="cw-controls" onSubmit={handleSubmit}>
             <label className="sr-only" htmlFor="cw-condition-select">
-              Condición a evaluar
+              Condici?n a evaluar
             </label>
             <select id="cw-condition-select" className="cw-select" value={form.condition} onChange={handleConditionChange}>
               {conditionOptions.map((key) => (
@@ -677,3 +716,4 @@ export default function Home() {
     </div>
   );
 }
+-------------------------------------------------------------------------- */

@@ -1,0 +1,93 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700&display=swap");
+
+.figma-home {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+    background-color: #A5BFCC;
+    color: #ffffff;
+    font-family: "Outfit", sans-serif;
+    text-align: center;
+    padding: 24px;
+}
+
+.figma-header {
+    margin-bottom: 32px;
+}
+
+.figma-header h1 {
+    font-size: clamp(3rem, 12vw, 8rem);
+    font-weight: 700;
+    letter-spacing: 0.5rem;
+    margin: 0;
+}
+
+.figma-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.figma-search-box {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.figma-search-box input {
+    width: min(500px, 90vw);
+    background-color: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 26px;
+    padding: 20px 64px 20px 32px;
+    font-size: 1.5rem;
+    font-weight: 300;
+    color: rgba(0, 0, 0, 0.5);
+    text-align: center;
+    outline: none;
+}
+
+.figma-search-box input::placeholder {
+    color: rgba(0, 0, 0, 0.45);
+}
+
+.figma-calendar-icon {
+    position: absolute;
+    right: 24px;
+    width: 30px;
+    height: 30px;
+    pointer-events: none;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23888888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>');
+}
+
+.figma-footer {
+    margin-top: clamp(48px, 12vh, 160px);
+}
+
+.figma-footer p {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 400;
+    color: #000000;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
