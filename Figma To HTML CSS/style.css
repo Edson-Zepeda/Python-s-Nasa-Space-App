@@ -1,0 +1,108 @@
+/* Estilos generales del cuerpo de la página */
+body {
+    margin: 0;
+    font-family: 'Outfit', sans-serif; /* Fuente base para el texto */
+    background-color: #A5BFCC; /* Color de fondo actualizado */
+    color: white; 
+    
+    display: flex;
+    flex-direction: column; /* Apila los elementos verticalmente */
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* Contenedor principal */
+main.container {
+    text-align: center;
+}
+
+/* Estilo del título principal "CRONOWEATH" */
+h1 {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700; /* Bold */
+    font-size: 128px; /* Tamaño actualizado */
+    color: #FFFFFF; /* Color especificado */
+    letter-spacing: 0.5rem; 
+    margin: 0;
+    padding: 20px;
+}
+
+/* 1. Contenedor para posicionar el ícono */
+.search-box {
+    position: relative;
+}
+
+/* 2. Creación y estilo del ícono del calendario */
+.search-box::after {
+    content: '';
+    display: block;
+    width: 30px;
+    height: 30px;
+    
+    /* Usamos una imagen SVG para un ícono nítido */
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23888888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>');
+    background-repeat: no-repeat;
+    background-size: contain;
+
+    /* Posicionamiento del ícono */
+    position: absolute;
+    top: 50%;
+    right: 25px; /* Ajusta este valor si necesitas más o menos espacio */
+    transform: translateY(-50%);
+
+    /* Para que puedas hacer clic a través del ícono y abrir el calendario */
+    pointer-events: none; 
+}
+
+
+/* Estilo del campo de fecha */
+#date-input {
+    /* --- Tus estilos personalizados --- */
+    width: 500px;
+
+    /* Estilo del campo de fecha con EFECTO LIQUID GLASS */
+    /* --- PROPIEDADES PARA EL EFECTO GLASS --- */
+    background: rgba(255, 255, 255, 0.25); /* 1. Fondo más transparente */
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1); /* 2. Sombra suave para "elevarlo" del fondo */
+    backdrop-filter: blur(10px); /* 3. ¡LA CLAVE! Desenfoque del fondo */
+    border: 1px solid rgba(255, 255, 255, 0.3); /* 4. Un borde sutil para definir el "cristal" */
+
+    /* --- Tus otros estilos que se mantienen --- */
+    border-radius: 26px; /* Un borde bien redondeado funciona genial con este efecto */
+    padding: 20px 60px 20px 30px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 300;
+    font-size: 1.5rem;
+    color: rgba(0, 0, 0, 0.500);;
+    outline: none;
+    text-align: center;
+}
+
+
+/* Wrapper de Flatpickr */
+.flatpickr-wrapper {
+    position: relative;
+}
+
+/* --- AÑADIDO PARA CENTRAR EL CALENDARIO --- */
+.flatpickr-calendar {
+    /* Usamos !important para forzar el centrado */
+    position: fixed !important;
+    top: 60% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+
+    /* (Opcional) Le añadimos una sombra para que parezca que flota */
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    border-radius: 8px; /* Bordes redondeados para el calendario */
+}
+
+/* Estilo del pie de página */
+footer p {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 400; /* Regular */
+    font-size: 17px; /* Tamaño actualizado */
+    color: #000000; /* Color actualizado */
+    margin-top: 350px;
+}

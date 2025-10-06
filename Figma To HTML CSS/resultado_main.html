@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRONOWEATH - Dashboard</title>
+
+  <link rel="stylesheet" href="style_resultado.css">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <div class="dashboard-container">
+    
+    <header class="page-header">
+      <h1 class="logo">CRONOWEATH</h1>
+      <div class="selected-date">08 August 2026</div>
+    </header>
+
+    <section class="card location-card">
+      <div class="card-label">LOCATION</div>
+      <div class="card-content">
+        <h2 class="card-main-text">Lugar</h2>
+        <div class="weather-display">
+          <svg class="weather-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9.59 4.59A2 2 0 1 1 11 8H2"/><path d="M12.59 19.41A2 2 0 1 0 14 16H2"/><path d="M17.73 10.73A2.5 2.5 0 1 1 19.5 12H2"/>
+          </svg>
+          <span class="temperature-text">#°</span>
+          <div class="temp-toggle">
+            <span class="active">C</span> | <span>F</span>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer-text">Estimated average grades...</div>
+    </section>
+
+    <section class="card condition-card">
+      <div class="card-label">CONDITION</div>
+      <div class="card-content">
+        <h2 class="card-main-text">Very windy</h2>
+        <div class="card-side-text">88%</div>
+      </div>
+      <div class="card-footer-text">Probability</div>
+    </section>
+
+    <section class="card histogram-card">
+      <div class="card-header">
+        <div class="card-label">HISTOGRAM</div>
+        <div class="dropdown">A year ago 
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+      </div>
+      <div class="chart-container">
+        <ul class="y-axis">
+            <li>100%</li>
+            <li>90%</li>
+            <li>80%</li>
+            <li>70%</li>
+            <li>60%</li>
+            <li>50%</li>
+            <li>40%</li>
+            <li>30%</li>
+            <li>20%</li>
+            <li>10%</li>
+        </ul>
+        <div class="chart-area">
+          <svg width="100%" height="100%" viewBox="0 0 500 100" preserveAspectRatio="none">
+            <polyline fill="none" stroke="#fff" stroke-width="2" points="0,10 83,20 166,60 249,15 332,10 415,25 500,30" />
+            <circle cx="0" cy="10" r="4" fill="#fff" />
+            <circle cx="83" cy="20" r="4" fill="#fff" />
+            <circle cx="166" cy="60" r="4" fill="#fff" />
+            <circle cx="249" cy="15" r="4" fill="#fff" />
+            <circle cx="332"cy="10" r="4" fill="#fff" />
+            <circle cx="415" cy="25" r="4" fill="#fff" />
+            <circle cx="500" cy="30" r="4" fill="#fff" />
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <nav class="forecast-bar">
+        <div class="day">
+            <span>Sun</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/></svg>
+        </div>
+        <div class="day active">
+            <span>Mon</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2"/><path d="M12.59 19.41A2 2 0 1 0 14 16H2"/><path d="M17.73 10.73A2.5 2.5 0 1 1 19.5 12H2"/></svg>
+        </div>
+        <div class="day">
+            <span>Tue</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19.5A5 5 0 0 0 19 10h-1.5A3.5 3.5 0 0 0 12 3.5 3.5 3.5 0 0 0 8.5 7H7a5 5 0 0 0 0 10h10.5z"/></svg>
+        </div>
+        <div class="day">
+            <span>Wed</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2"/><path d="M12.59 19.41A2 2 0 1 0 14 16H2"/><path d="M17.73 10.73A2.5 2.5 0 1 1 19.5 12H2"/></svg>
+        </div>
+        <div class="day">
+            <span>Thu</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2"/><path d="M12.59 19.41A2 2 0 1 0 14 16H2"/><path d="M17.73 10.73A2.5 2.5 0 1 1 19.5 12H2"/></svg>
+        </div>
+        <div class="day">
+            <span>Fri</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 17a5 5 0 0 0-5-5h-1.26A8 8 0 0 0 4 9a4.5 4.5 0 0 0 4.5 4.5H10l-2 4h4l2-4h2a5 5 0 0 0 5-5z"/></svg>
+        </div>
+        <div class="day">
+            <span>Sat</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/></svg>
+        </div>
+    </nav>
+
+    <footer class="page-footer">
+      Analyzing decades of NASA data
+    </footer>
+
+  </div>
+</body>
+</html>

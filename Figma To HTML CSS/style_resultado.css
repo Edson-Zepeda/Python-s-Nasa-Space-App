@@ -1,0 +1,227 @@
+/* --- CONFIGURACIÓN GENERAL --- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background-color: #A5BFCC;
+  color: #FFFFFF;
+  display: flex;
+  justify-content: center; /* <-- CAMBIO: Centra horizontalmente */
+  align-items: center;     /* <-- CAMBIO: Centra verticalmente */
+  min-height: 100vh;
+}
+
+/* --- CONTENEDOR PRINCIPAL --- */
+.dashboard-container {
+  width: 1349px; /* CAMBIO: Ancho ligeramente mayor */
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem; /* CAMBIO: Mayor separación entre tarjetas */
+}
+
+/* --- ENCABEZADO SUPERIOR --- */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.logo {
+  color: #FFFFFF; /* CAMBIO: Color a blanco puro */
+  font-weight: 900; /* CAMBIO: Más grueso */
+  font-size: 38px; /* CAMBIO: Ligeramente más pequeño */
+  letter-spacing: 0.05em;
+}
+
+.selected-date {
+  color: rgba(255, 255, 255, 0.7); /* CAMBIO: Color más claro y sutil */
+  font-weight: 400;
+  font-size: 16px;
+}
+
+/* --- TARJETAS (EFECTO DE CRISTAL) --- */
+.card {
+  /* CAMBIO: Estilos para un mejor efecto "glassmorphism" */
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 1rem;
+  padding: 1.5rem 2rem;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* --- ETIQUETAS Y TEXTOS --- */
+.card-label {
+  color: rgba(236, 241, 243, 0.7); /* CAMBIO: Color más claro */
+  font-weight: 400; /* CAMBIO: Más ligero */
+  font-size: 14px;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.card-main-text {
+  color: #FFFFFF; /* CAMBIO: Color a blanco puro */
+  font-weight: 400;
+  font-size: 48px; /* CAMBIO: Texto principal mucho más grande */
+  line-height: 1;
+}
+
+.card-footer-text {
+  color: rgba(236, 241, 243, 0.7); /* CAMBIO: Color más claro */
+  font-weight: 300;
+  font-size: 14px;
+  margin-top: 0.25rem;
+}
+
+/* --- TARJETA DE UBICACIÓN --- */
+.location-card .card-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.weather-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.weather-icon {
+  width: 48px;  /* CAMBIO: Icono más grande */
+  height: 48px;
+}
+
+.temperature-text {
+  color: #FFFFFF;
+  font-weight: 600;
+  font-size: 44px; /* CAMBIO: Temperatura más grande */
+}
+
+.temp-toggle {
+  color: rgba(255, 255, 255, 0.5); /* CAMBIO: Color más sutil */
+  font-size: 14px;
+}
+.temp-toggle .active {
+  color: #FFFFFF; /* CAMBIO: El activo es blanco puro */
+}
+
+
+/* --- TARJETA DE CONDICIÓN --- */
+.condition-card .card-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end; /* Alineado a la base */
+}
+
+.card-side-text {
+  color: #FFFFFF;
+  font-weight: 600;
+  font-size: 44px; /* CAMBIO: Porcentaje más grande */
+  line-height: 1;
+}
+
+/* --- HISTOGRAMA --- */
+.histogram-card .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.dropdown {
+  color: rgba(255, 255, 255, 0.7); /* CAMBIO: Color más sutil */
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.dropdown svg {
+  stroke: rgba(255, 255, 255, 0.7);
+}
+
+/* NUEVO: Contenedor de la gráfica */
+.chart-container {
+  display: flex;
+  height: 120px;
+}
+
+/* NUEVO: Eje Y de la gráfica */
+.y-axis {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-right: 1rem;
+  font-size: 12px;
+  color: rgba(236, 241, 243, 0.7);
+  text-align: right;
+  height: 100%;
+}
+
+.chart-area {
+  flex-grow: 1;
+  height: 100%;
+  /* NUEVO: Líneas de fondo para la cuadrícula */
+  background-image: 
+    linear-gradient(to top, rgba(33, 52, 72, 0.2) 1px, transparent 1px);
+  background-size: 100% 11.11%; /* 100 / 9 espacios entre 10 líneas */
+}
+
+/* --- BARRA DE DÍAS --- */
+.forecast-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem; /* NUEVO: Espacio entre los días */
+}
+
+.day {
+  flex-basis: 0; /* Distribución equitativa */
+  flex-grow: 1;
+  background: rgba(255, 255, 255, 0.1); /* CAMBIO: Fondo más sutil */
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.75rem;
+  padding: 0.8rem 0.5rem;
+  text-align: center;
+  color: #FFFFFF; /* CAMBIO: Texto blanco por defecto */
+  font-size: 16px;
+  font-weight: 400;
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.day:hover {
+  background: rgba(255, 255, 255, 0.2); /* CAMBIO: Hover más claro */
+}
+
+.day.active {
+  background: #ECF1F3;
+  color: #0c2135; /* CAMBIO: Texto más oscuro para mejor contraste */
+  font-weight: 700;
+}
+.day.active svg {
+  stroke: #0c2135; /* El ícono también cambia de color */
+}
+
+.day svg {
+  width: 28px; /* CAMBIO: Iconos más grandes */
+  height: 28px;
+  stroke: #FFFFFF; /* CAMBIO: Iconos blancos por defecto */
+}
+
+/* --- PIE DE PÁGINA --- */
+.page-footer {
+  text-align: center; /* CAMBIO: Centrado */
+  width: 100%;
+  color: rgba(255, 255, 255, 0.5); /* CAMBIO: Color más sutil */
+  font-size: 14px;
+  margin-top: 1.5rem;
+}
