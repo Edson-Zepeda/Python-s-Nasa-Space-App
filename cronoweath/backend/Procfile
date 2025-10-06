@@ -1,1 +1,1 @@
-web: uvicorn backend.app.main:app --host 0.0.0.0 --port  ${PORT:-8000} 
+web: PYTHONPATH=/install/lib/python312.zip:/install/lib/python3.12:/install/lib/python3.12/lib-dynload uvicorn backend.app.main:app --host 0.0.0.0 --port  ${PORT:-8000} 
