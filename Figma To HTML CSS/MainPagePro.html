@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRONOWEATH - Weather App</title>
+    
+    <!-- Fuentes y estilos -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="styles.css"> 
+
+    <style>
+        /* Clase para accesibilidad (ocultar visualmente pero accesible a lectores de pantalla) */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+
+        /* Por defecto, ocultamos el panel de sugerencias */
+        .suggestions-panel {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1 class="main-title">CRONOWEATH</h1>
+    
+        <!-- FORMULARIO PRINCIPAL -->
+        <form class="search-form" id="main-search-form">
+            <div class="search-box">
+                <!-- Label oculto accesible -->
+                <label for="location-input" class="sr-only">Buscar ubicación</label>
+                <input 
+                    type="search" 
+                    id="location-input" 
+                    placeholder="Enter a location (e.g., Paris, Mexico, your city, etc.)"
+                    autocomplete="off"
+                    name="q" 
+                >
+                <button type="submit" aria-label="Search location" class="search-button-inner">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+            
+            <!-- PANEL DE SUGERENCIAS -->
+            <div id="suggestions-panel" class="suggestions-panel">
+                <ul id="suggestion-list">
+                    <li class="suggestion-item" data-value="Mexico City"><i class="fas fa-history"></i> Mexico City</li>
+                    <li class="suggestion-item" data-value="Paris"><i class="fas fa-history"></i> Paris</li>
+                    <li class="suggestion-item" data-value="Tokyo"><i class="fas fa-history"></i> Tokyo</li>
+                    <li class="suggestion-item" data-value="London"><i class="fas fa-star"></i> Favorite: London</li>
+                </ul>
+            </div>
+        </form>
+    </main>
+
+    <footer class="app-footer-bottom">
+        <p class="small-text">Analyzing decades of NASA data.</p>
+    </footer>
+
+    <script>
+document.addEventListener('DOMContentLoaded', () => {
+    const suggestionContainer = document.getElementById('suggestion-list');
+    const suggestionsPanel = document.getElementById('suggestions-panel');
+    const locationInput = document.getElementById('location-input');
+    const form = document.getElementById('main-search-form');
+
+    if (!suggestionContainer || !locationInput || !form) {
+        console.error("Error: Elementos clave no encontrados.");
+        return;
+    }
+
+    // Función para cerrar el panel sin borrar input
+    function closePanelKeepInput() {
+        locationInput.blur();
+        suggestionsPanel.style.display = 'none';
+    }
+
+    // Selección de sugerencia
+    function selectSuggestion(event) {
+        const li = event.target.closest('.suggestion-item');
+        if (!li) return;
+
+        const suggestionText = li.getAttribute('data-value');
+        locationInput.value = suggestionText;
+
+        // Cierra panel pero mantiene el valor en input
+        closePanelKeepInput();
+    }
+
+    // Delegación de eventos para clic en sugerencias
+    suggestionContainer.addEventListener('click', selectSuggestion);
+
+    // Mostrar panel al enfocar input
+    locationInput.addEventListener('focus', () => {
+        suggestionsPanel.style.display = 'block';
+    });
+
+    // Ocultar panel al perder foco (con delay para permitir clic en sugerencias)
+    locationInput.addEventListener('blur', () => {
+        setTimeout(() => {
+            suggestionsPanel.style.display = 'none';
+        }, 150);
+    });
+
+    // Manejo del submit del form (Enter)
+    form.addEventListener('submit', e => {
+        e.preventDefault();
+        console.log("Buscando:", locationInput.value);
+
+        // Borra input y cierra panel
+        locationInput.value = "";
+        locationInput.blur();
+        suggestionsPanel.style.display = 'none';
+    });
+});
+</script>
+</body>
+</html>

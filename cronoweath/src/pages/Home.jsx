@@ -1,33 +1,108 @@
-import { useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import "./home-figma.css";
 
-const Home = () => {
-  const [selectedDate, setSelectedDate] = useState("");
+const SUGGESTIONS = [
+  { label: "Mexico City", icon: "fa-history" },
+  { label: "Paris", icon: "fa-history" },
+  { label: "Tokyo", icon: "fa-history" },
+  { label: "Favorite: London", icon: "fa-star" },
+];
 
-  const handleDateChange = (event) => {
-    setSelectedDate(event.target.value);
+const Home = () => {
+  const [query, setQuery] = useState("");
+  const [panelOpen, setPanelOpen] = useState(false);
+  const closeTimerRef = useRef(null);
+  const inputRef = useRef(null);
+
+  const clearCloseTimer = () => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
   };
 
+  const handleFocus = () => {
+    clearCloseTimer();
+    setPanelOpen(true);
+  };
+
+  const handleBlur = () => {
+    clearCloseTimer();
+    closeTimerRef.current = setTimeout(() => {
+      setPanelOpen(false);
+    }, 120);
+  };
+
+  const handleSuggestionClick = (value) => {
+    setQuery(value);
+    setPanelOpen(false);
+    requestAnimationFrame(() => inputRef.current?.blur());
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    setPanelOpen(false);
+    inputRef.current?.blur();
+    setQuery("");
+  };
+
+  useEffect(
+    () => () => {
+      clearCloseTimer();
+    },
+    [],
+  );
+
   return (
-    <div className="figma-home">
-      <header className="figma-header">
-        <h1>CRONOWEATH</h1>
-      </header>
-      <main className="figma-container">
-        <div className="figma-search-box">
-          <label className="sr-only" htmlFor="figma-date-input">Selecciona una fecha</label>
-          <input
-            id="figma-date-input"
-            type="text"
-            placeholder="DD/MM/YYYY"
-            value={selectedDate}
-            onChange={handleDateChange}
-          />
-          <span className="figma-calendar-icon" aria-hidden="true" />
-        </div>
+    <div className="main-page">
+      <main>
+        <h1 className="main-title">CRONOWEATH</h1>
+        <form className="search-form" onSubmit={handleSubmit}>
+          <div className="search-box">
+            <label className="sr-only" htmlFor="location-input">
+              Buscar ubicaci\u00f3n
+            </label>
+            <input
+              id="location-input"
+              ref={inputRef}
+              type="search"
+              name="q"
+              autoComplete="off"
+              placeholder="Enter a location (e.g., Paris, Mexico, your city, etc.)"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
+            />
+            <button type="submit" className="search-button-inner" aria-label="Search location">
+              <i className="fas fa-search" />
+            </button>
+          </div>
+          <div
+            className={`suggestions-panel ${panelOpen ? "is-open" : ""}`}
+            role="listbox"
+            aria-label="Ubicaciones sugeridas"
+          >
+            <ul>
+              {SUGGESTIONS.map((item) => (
+                <li
+                  key={item.label}
+                  className="suggestion-item"
+                  role="option"
+                  tabIndex={-1}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => handleSuggestionClick(item.label)}
+                >
+                  <i className={`fas ${item.icon}`} />
+                  {item.label}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </form>
       </main>
-      <footer className="figma-footer">
-        <p>Analyzing decades of NASA data</p>
+      <footer className="app-footer-bottom">
+        <p className="small-text">Analyzing decades of NASA data.</p>
       </footer>
     </div>
   );
