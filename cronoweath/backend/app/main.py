@@ -17,7 +17,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 import numpy as np
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse, RedirectResponse
 
 from .models import (
     ErrorResponse,
@@ -129,6 +129,16 @@ else:
 # ---------------------------------------------------------------------------
 # Helper functions
 # ---------------------------------------------------------------------------
+
+# Root and health endpoints (useful for platforms and human checks)
+@app.get("/")
+def root() -> RedirectResponse:  # type: ignore[override]
+    return RedirectResponse(url="/docs", status_code=307)
+
+
+@app.get("/healthz")
+def healthz() -> Dict[str, str]:
+    return {"status": "ok"}
 
 def _resolve_thresholds(condition: str, overrides: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     base = CONF["conditions"][condition]["thresholds"].copy()
