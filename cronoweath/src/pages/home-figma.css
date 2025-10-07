@@ -57,6 +57,14 @@
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
 }
 
+#location-input::-webkit-search-cancel-button {
+    display: none;
+}
+
+#location-input::-ms-clear {
+    display: none;
+}
+
 #location-input {
     flex-grow: 1;
     height: 100%;
@@ -221,14 +229,17 @@
     font-size: 0.95rem;
     display: inline-flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
     justify-content: center;
+    list-style: none;
 }
 
-.last-location-label {
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+.meta-chip {
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    font-weight: 500;
 }
 
 .calendar-page {
