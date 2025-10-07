@@ -136,6 +136,26 @@
     background-color: #f0f0f0;
 }
 
+.suggestion-item.is-placeholder,
+.suggestion-item.is-hint {
+    color: rgba(51, 51, 51, 0.65);
+    cursor: default;
+    font-style: italic;
+    pointer-events: none;
+}
+
+.suggestion-item.is-placeholder:hover,
+.suggestion-item.is-placeholder:focus,
+.suggestion-item.is-hint:hover,
+.suggestion-item.is-hint:focus {
+    background-color: transparent;
+}
+
+.suggestion-item.is-error {
+    color: #b34747;
+    font-weight: 600;
+}
+
 .app-footer-bottom {
     margin-top: auto;
     width: 100%;
@@ -147,6 +167,23 @@
     color: rgba(255, 255, 255, 0.7);
     font-size: 1rem;
     margin: 0;
+}
+
+.location-status,
+.location-error {
+    margin-top: 24px;
+    font-size: clamp(1rem, 2.5vw, 1.2rem);
+    color: #ffffff;
+}
+
+.location-error {
+    color: #ffd7d7;
+}
+
+.location-status .location-coords {
+    display: block;
+    font-size: 0.9em;
+    opacity: 0.85;
 }
 
 .sr-only {

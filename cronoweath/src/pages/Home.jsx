@@ -1,29 +1,66 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "./home-figma.css";
 
-const SUGGESTIONS = [
-  { label: "Mexico City", icon: "fa-history" },
-  { label: "Paris", icon: "fa-history" },
-  { label: "Tokyo", icon: "fa-history" },
-  { label: "Favorite: London", icon: "fa-star" },
-];
+const MIN_QUERY_LENGTH = 3;
+
+async function geocodeLocation(query, { signal } = {}) {
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+
+  const url = new URL("https://geocoding-api.open-meteo.com/v1/search");
+  url.searchParams.set("name", trimmed);
+  url.searchParams.set("count", "6");
+  url.searchParams.set("language", "es");
+  url.searchParams.set("format", "json");
+
+  const response = await fetch(url.toString(), { signal });
+  if (!response.ok) {
+    throw new Error(`Error geocoding (${response.status})`);
+  }
+
+  const payload = await response.json();
+  const results = Array.isArray(payload?.results) ? payload.results : [];
+  return results.map((item) => ({
+    label: `${item.name}${item.admin1 ? `, ${item.admin1}` : ""}${item.country ? `, ${item.country}` : ""}`,
+    lat: item.latitude,
+    lon: item.longitude,
+  }));
+}
 
 const Home = () => {
   const [query, setQuery] = useState("");
   const [panelOpen, setPanelOpen] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [suggestionsError, setSuggestionsError] = useState(null);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [resolvedLocation, setResolvedLocation] = useState(null);
+  const [locationStatus, setLocationStatus] = useState(null);
+  const [locationError, setLocationError] = useState(null);
+  const [resolvingSubmit, setResolvingSubmit] = useState(false);
   const closeTimerRef = useRef(null);
+  const fetchControllerRef = useRef(null);
   const inputRef = useRef(null);
 
-  const clearCloseTimer = () => {
+  const trimmedQuery = query.trim();
+
+  const clearCloseTimer = useCallback(() => {
     if (closeTimerRef.current) {
       clearTimeout(closeTimerRef.current);
       closeTimerRef.current = null;
     }
-  };
+  }, []);
 
   const handleFocus = () => {
     clearCloseTimer();
-    setPanelOpen(true);
+    if (
+      suggestions.length ||
+      loadingSuggestions ||
+      suggestionsError ||
+      trimmedQuery.length >= MIN_QUERY_LENGTH
+    ) {
+      setPanelOpen(true);
+    }
   };
 
   const handleBlur = () => {
@@ -33,25 +70,149 @@ const Home = () => {
     }, 120);
   };
 
-  const handleSuggestionClick = (value) => {
-    setQuery(value);
+  const handleSuggestionClick = (suggestion) => {
+    setSelectedLocation(suggestion);
+    setResolvedLocation(suggestion);
+    setQuery(suggestion.label);
     setPanelOpen(false);
+    setSuggestions([]);
+    setSuggestionsError(null);
+    setLocationError(null);
+    setLocationStatus(`Ubicación lista: ${suggestion.label}`);
     requestAnimationFrame(() => inputRef.current?.blur());
   };
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    setPanelOpen(false);
-    inputRef.current?.blur();
-    setQuery("");
-  };
+  const handleSubmit = useCallback(
+    async (event) => {
+      event.preventDefault();
+      clearCloseTimer();
+      setPanelOpen(false);
+      inputRef.current?.blur();
+      setLocationError(null);
+      setLocationStatus(null);
+      setResolvingSubmit(false);
+
+      const trimmed = query.trim();
+      if (!trimmed) {
+        setResolvedLocation(null);
+        setLocationError("Ingresa una ubicación para continuar.");
+        return;
+      }
+
+      let location = null;
+      if (selectedLocation && selectedLocation.label.toLowerCase() === trimmed.toLowerCase()) {
+        location = selectedLocation;
+      } else {
+        try {
+          setResolvingSubmit(true);
+          const results = await geocodeLocation(trimmed);
+          if (!results.length) {
+            setResolvedLocation(null);
+            setSelectedLocation(null);
+            setLocationError("No encontramos esa ubicación. Intenta con otra.");
+            return;
+          }
+          location = results[0];
+          setSelectedLocation(location);
+        } catch (error) {
+          setResolvedLocation(null);
+          setSelectedLocation(null);
+          setLocationError("No se pudo consultar la ubicación. Intenta de nuevo.");
+          console.error(error);
+          return;
+        } finally {
+          setResolvingSubmit(false);
+        }
+      }
+
+      setResolvedLocation(location);
+      setQuery(location.label);
+      setSuggestions([]);
+      setLocationStatus(`Ubicación lista: ${location.label}`);
+    },
+    [clearCloseTimer, query, selectedLocation],
+  );
 
   useEffect(
     () => () => {
       clearCloseTimer();
+      if (fetchControllerRef.current) {
+        fetchControllerRef.current.abort();
+        fetchControllerRef.current = null;
+      }
     },
-    [],
+    [clearCloseTimer],
   );
+
+  useEffect(() => {
+    if (!trimmedQuery) {
+      if (fetchControllerRef.current) {
+        fetchControllerRef.current.abort();
+        fetchControllerRef.current = null;
+      }
+      setSuggestions([]);
+      setLoadingSuggestions(false);
+      setSuggestionsError(null);
+      return;
+    }
+
+    if (selectedLocation && selectedLocation.label === trimmedQuery) {
+      if (fetchControllerRef.current) {
+        fetchControllerRef.current.abort();
+        fetchControllerRef.current = null;
+      }
+      setSuggestions([]);
+      setLoadingSuggestions(false);
+      setSuggestionsError(null);
+      return;
+    }
+
+    if (trimmedQuery.length < MIN_QUERY_LENGTH) {
+      if (fetchControllerRef.current) {
+        fetchControllerRef.current.abort();
+        fetchControllerRef.current = null;
+      }
+      setSuggestions([]);
+      setLoadingSuggestions(false);
+      setSuggestionsError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    fetchControllerRef.current?.abort();
+    fetchControllerRef.current = controller;
+
+    setLoadingSuggestions(true);
+    setSuggestionsError(null);
+
+    const timer = setTimeout(() => {
+      geocodeLocation(trimmedQuery, { signal: controller.signal })
+        .then((results) => {
+          if (controller.signal.aborted) return;
+          setSuggestions(results);
+          setPanelOpen(true);
+        })
+        .catch((error) => {
+          if (controller.signal.aborted) return;
+          console.error(error);
+          setSuggestions([]);
+          setSuggestionsError("No se pudo obtener sugerencias.");
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) {
+            setLoadingSuggestions(false);
+          }
+        });
+    }, 250);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+      if (fetchControllerRef.current === controller) {
+        fetchControllerRef.current = null;
+      }
+    };
+  }, [selectedLocation, trimmedQuery]);
 
   return (
     <div className="main-page">
@@ -70,7 +231,15 @@ const Home = () => {
               autoComplete="off"
               placeholder="Enter a location (e.g., Paris, Mexico, your city, etc.)"
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                const value = event.target.value;
+                setQuery(value);
+                setSelectedLocation(null);
+                setResolvedLocation(null);
+                setLocationStatus(null);
+                setLocationError(null);
+                setPanelOpen(true);
+              }}
               onFocus={handleFocus}
               onBlur={handleBlur}
             />
@@ -78,31 +247,55 @@ const Home = () => {
               <i className="fas fa-search" />
             </button>
           </div>
-          <div
-            className={`suggestions-panel ${panelOpen ? "is-open" : ""}`}
-            role="listbox"
-            aria-label="Ubicaciones sugeridas"
-          >
+          <div className={`suggestions-panel ${panelOpen ? "is-open" : ""}`} role="listbox" aria-label="Ubicaciones sugeridas">
             <ul>
-              {SUGGESTIONS.map((item) => (
-                <li
-                  key={item.label}
-                  className="suggestion-item"
-                  role="option"
-                  tabIndex={-1}
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => handleSuggestionClick(item.label)}
-                >
-                  <i className={`fas ${item.icon}`} />
-                  {item.label}
+              {loadingSuggestions ? (
+                <li className="suggestion-item is-placeholder">Buscando ubicaciones...</li>
+              ) : suggestions.length > 0 ? (
+                suggestions.map((item) => (
+                  <li
+                    key={`${item.lat}:${item.lon}`}
+                    className="suggestion-item"
+                    role="option"
+                    tabIndex={-1}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => handleSuggestionClick(item)}
+                  >
+                    <i className="fas fa-location-dot" />
+                    {item.label}
+                  </li>
+                ))
+              ) : trimmedQuery.length >= MIN_QUERY_LENGTH && !suggestionsError ? (
+                <li className="suggestion-item is-placeholder">Sin resultados</li>
+              ) : trimmedQuery ? (
+                <li className="suggestion-item is-placeholder">
+                  Escribe al menos {MIN_QUERY_LENGTH} caracteres
                 </li>
-              ))}
+              ) : (
+                <li className="suggestion-item is-placeholder">Escribe el nombre de una ciudad</li>
+              )}
+              {suggestionsError ? <li className="suggestion-item is-error">{suggestionsError}</li> : null}
             </ul>
           </div>
         </form>
+        {resolvedLocation ? (
+          <p className="location-status" role="status">
+            {locationStatus}
+            <span className="location-coords">
+              {` (lat: ${resolvedLocation.lat.toFixed(3)}, lon: ${resolvedLocation.lon.toFixed(3)})`}
+            </span>
+          </p>
+        ) : null}
+        {locationError ? (
+          <p className="location-error" role="alert">
+            {locationError}
+          </p>
+        ) : null}
       </main>
       <footer className="app-footer-bottom">
-        <p className="small-text">Analyzing decades of NASA data.</p>
+        <p className="small-text">
+          {resolvingSubmit ? "Resolviendo ubicación..." : "Analyzing decades of NASA data."}
+        </p>
       </footer>
     </div>
   );
