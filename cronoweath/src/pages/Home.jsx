@@ -299,181 +299,181 @@ const Home = () => {
     setQuery(resolvedLocation ? resolvedLocation.label : "");
   };
 
-  const renderSearchStep = () => {
-    const meta =
-      step === "search" && resolvedLocation
-        ? [
-            resolvedLocation.label,
-            `Lat ${formatCoordinate(resolvedLocation.lat)}`,
-            `Lon ${formatCoordinate(resolvedLocation.lon)}`,
-            resolvedLocation.timezone ? `Zona horaria: ${resolvedLocation.timezone}` : null,
-            resolvedLocation.country
-              ? resolvedLocation.admin1
-                ? `${resolvedLocation.admin1}, ${resolvedLocation.country}`
-                : resolvedLocation.country
-              : null,
-            resolvedLocation.elevation != null ? `Altitud: ${resolvedLocation.elevation} m` : null,
-          ].filter(Boolean)
-        : [];
+const renderSearchStep = () => {
+  const meta =
+    step === "search" && resolvedLocation
+      ? [
+          resolvedLocation.label,
+          `Lat ${formatCoordinate(resolvedLocation.lat)}`,
+          `Lon ${formatCoordinate(resolvedLocation.lon)}`,
+          resolvedLocation.timezone ? `Zona horaria: ${resolvedLocation.timezone}` : null,
+          resolvedLocation.country
+            ? resolvedLocation.admin1
+              ? `${resolvedLocation.admin1}, ${resolvedLocation.country}`
+              : resolvedLocation.country
+            : null,
+          resolvedLocation.elevation != null ? `Altitud: ${resolvedLocation.elevation} m` : null,
+        ].filter(Boolean)
+      : [];
 
-    return (
-      <div className="main-page">
-        <main>
-          <h1 className="main-title">CRONOWEATH</h1>
-          <form className="search-form" onSubmit={handleSubmit}>
-            <div className="search-box">
-              <label className="sr-only" htmlFor="location-input">
-                Buscar ubicación
-              </label>
-              <input
-                id="location-input"
-                ref={inputRef}
-                type="text"
-                placeholder="Ingresa una ciudad o ubicación"
-                value={query}
-                onChange={(event) => {
-                  setQuery(event.target.value);
-                  setPanelOpen(true);
-                }}
-                onFocus={handleFocus}
-                onBlur={handleBlur}
-                autoComplete="off"
-              />
-              <button
-                type="submit"
-                className="search-button-inner"
-                aria-label="Buscar ubicación"
-                disabled={resolvingSubmit || trimmedQuery.length < MIN_QUERY_LENGTH}
-              >
-                <i className="fas fa-search" />
-              </button>
-            </div>
-            <div
-              className={`suggestions-panel ${panelOpen ? "is-open" : ""}`}
-              role="listbox"
-              aria-label="Ubicaciones sugeridas"
-            >
-              <ul>
-                {loadingSuggestions ? (
-                  <li className="suggestion-item is-placeholder">Buscando ubicaciones...</li>
-                ) : suggestions.length > 0 ? (
-                  suggestions.map((item) => (
-                    <li
-                      key={`${item.lat}:${item.lon}`}
-                      className="suggestion-item"
-                      role="option"
-                      tabIndex={-1}
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => handleSuggestionClick(item)}
-                    >
-                      <i className="fas fa-location-dot" />
-                      {item.label}
-                    </li>
-                  ))
-                ) : trimmedQuery.length >= MIN_QUERY_LENGTH && !suggestionsError ? (
-                  <li className="suggestion-item is-placeholder">Sin resultados</li>
-                ) : trimmedQuery ? (
-                  <li className="suggestion-item is-placeholder">
-                    Escribe al menos {MIN_QUERY_LENGTH} caracteres
-                  </li>
-                ) : (
-                  <li className="suggestion-item is-placeholder">Escribe el nombre de una ciudad</li>
-                )}
-                {suggestionsError ? (
-                  <li className="suggestion-item is-error">{suggestionsError}</li>
-                ) : null}
-              </ul>
-            </div>
-          </form>
-
-          {resolvingSubmit ? (
-            <p className="search-status">Resolviendo ubicación…</p>
-          ) : null}
-          {locationError ? (
-            <p className="location-error" role="alert">
-              {locationError}
-            </p>
-          ) : null}
-          {meta.length ? (
-            <ul className="last-location">
-              {meta.map((item) => (
-                <li key={item} className="meta-chip">
-                  {item}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </main>
-        <footer className="app-footer-bottom">
-          <p className="small-text">Analyzing decades of NASA data.</p>
-        </footer>
-      </div>
-    );
-  };
-
-
-  const renderCalendarStep = () => {
-    if (!resolvedLocation) return null;
-
-    const meta = [
-      `Lat ${formatCoordinate(resolvedLocation.lat)}`,
-      `Lon ${formatCoordinate(resolvedLocation.lon)}`,
-      resolvedLocation.timezone && `Zona horaria: ${resolvedLocation.timezone}`,
-      resolvedLocation.country &&
-        (resolvedLocation.admin1
-          ? `${resolvedLocation.admin1}, ${resolvedLocation.country}`
-          : resolvedLocation.country),
-      resolvedLocation.elevation != null && `Altitud: ${resolvedLocation.elevation} m`,
-    ].filter(Boolean);
-
-    return (
-      <div className="calendar-page">
-        <header className="calendar-header">
-          <div>
-            <p className="calendar-heading">Ubicación confirmada</p>
-            <h2 className="calendar-location">{resolvedLocation.label}</h2>
-            <ul className="calendar-meta">
-              {meta.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-            </div>
-          <button type="button" className="calendar-back" onClick={handleChangeLocation}>
-            Cambiar ubicación
-          </button>
-        </header>
-
-        <section className="calendar-content">
-          <div className="calendar-widget">
-            <Calendar
-              cursor={calendarCursor}
-              selectedDate={selectedDate}
-              onPrevMonth={handlePrevMonth}
-              onNextMonth={handleNextMonth}
-              onSelectDay={handleSelectDay}
+  return (
+    <div className="main-page">
+      <main>
+        <h1 className="main-title">CRONOWEATH</h1>
+        <form className="search-form" onSubmit={handleSubmit}>
+          <div className="search-box">
+            <label className="sr-only" htmlFor="location-input">
+              Buscar ubicación
+            </label>
+            <input
+              id="location-input"
+              ref={inputRef}
+              type="text"
+              placeholder="Ingresa una ciudad o ubicación"
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPanelOpen(true);
+              }}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
+              autoComplete="off"
             />
-            </div>
-          <aside className="calendar-sidebar">
-            <h3 className="calendar-sidebar-title">Fecha seleccionada</h3>
-            <p className="calendar-selected">{formatSelectedDate(selectedDate)}</p>
-            <div className="calendar-actions">
-              <button
-                type="button"
-                className="calendar-secondary"
-                onClick={() => setSelectedDate(null)}
-                disabled={!selectedDate}
-              >
-                Limpiar fecha
-              </button>
-              <button type="button" className="calendar-primary" disabled={!selectedDate}>
-                Continuar
-              </button>
-              </div>
-          </aside>
-        </section>
+            <button
+              type="submit"
+              className="search-button-inner"
+              aria-label="Buscar ubicación"
+              disabled={resolvingSubmit || trimmedQuery.length < MIN_QUERY_LENGTH}
+            >
+              <i className="fas fa-search" />
+            </button>
+          </div>
+          <div
+            className={`suggestions-panel ${panelOpen ? "is-open" : ""}`}
+            role="listbox"
+            aria-label="Ubicaciones sugeridas"
+          >
+            <ul>
+              {loadingSuggestions ? (
+                <li className="suggestion-item is-placeholder">Buscando ubicaciones...</li>
+              ) : suggestions.length > 0 ? (
+                suggestions.map((item) => (
+                  <li
+                    key={`${item.lat}:${item.lon}`}
+                    className="suggestion-item"
+                    role="option"
+                    tabIndex={-1}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => handleSuggestionClick(item)}
+                  >
+                    <i className="fas fa-location-dot" />
+                    {item.label}
+                  </li>
+                ))
+              ) : trimmedQuery.length >= MIN_QUERY_LENGTH && !suggestionsError ? (
+                <li className="suggestion-item is-placeholder">Sin resultados</li>
+              ) : trimmedQuery ? (
+                <li className="suggestion-item is-placeholder">
+                  Escribe al menos {MIN_QUERY_LENGTH} caracteres
+                </li>
+              ) : (
+                <li className="suggestion-item is-placeholder">Escribe el nombre de una ciudad</li>
+              )}
+              {suggestionsError ? (
+                <li className="suggestion-item is-error">{suggestionsError}</li>
+              ) : null}
+            </ul>
+          </div>
+        </form>
+
+        {resolvingSubmit ? (
+          <p className="search-status">Resolviendo ubicación…</p>
+        ) : null}
+        {locationError ? (
+          <p className="location-error" role="alert">
+            {locationError}
+          </p>
+        ) : null}
+        {meta.length ? (
+          <ul className="last-location">
+            {meta.map((item) => (
+              <li key={item} className="meta-chip">
+                {item}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </main>
+      <footer className="app-footer-bottom">
+        <p className="small-text">Analyzing decades of NASA data.</p>
+      </footer>
+    </div>
+  );
+};
+
+const renderCalendarStep = () => {
+  if (!resolvedLocation) return null;
+
+  const meta = [
+    `Lat ${formatCoordinate(resolvedLocation.lat)}`,
+    `Lon ${formatCoordinate(resolvedLocation.lon)}`,
+    resolvedLocation.timezone && `Zona horaria: ${resolvedLocation.timezone}`,
+    resolvedLocation.country &&
+      (resolvedLocation.admin1
+        ? `${resolvedLocation.admin1}, ${resolvedLocation.country}`
+        : resolvedLocation.country),
+    resolvedLocation.elevation != null && `Altitud: ${resolvedLocation.elevation} m`,
+  ].filter(Boolean);
+
+  return (
+    <div className="calendar-page">
+      <header className="calendar-header">
+        <div>
+          <p className="calendar-heading">Ubicación confirmada</p>
+          <h2 className="calendar-location">{resolvedLocation.label}</h2>
+          <ul className="calendar-meta">
+            {meta.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
         </div>
-    );
-  };
+        <button type="button" className="calendar-back" onClick={handleChangeLocation}>
+          Cambiar ubicación
+        </button>
+      </header>
+
+      <section className="calendar-content">
+        <div className="calendar-widget">
+          <Calendar
+            cursor={calendarCursor}
+            selectedDate={selectedDate}
+            onPrevMonth={handlePrevMonth}
+            onNextMonth={handleNextMonth}
+            onSelectDay={handleSelectDay}
+          />
+        </div>
+        <aside className="calendar-sidebar">
+          <h3 className="calendar-sidebar-title">Fecha seleccionada</h3>
+          <p className="calendar-selected">{formatSelectedDate(selectedDate)}</p>
+          <div className="calendar-actions">
+            <button
+              type="button"
+              className="calendar-secondary"
+              onClick={() => setSelectedDate(null)}
+              disabled={!selectedDate}
+            >
+              Limpiar fecha
+            </button>
+            <button type="button" className="calendar-primary" disabled={!selectedDate}>
+              Continuar
+            </button>
+          </div>
+        </aside>
+      </section>
+    </div>
+  );
+};
+
 
   return step === "search" ? renderSearchStep() : renderCalendarStep();
 };
