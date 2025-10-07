@@ -1,4 +1,4 @@
-"""FastAPI application entrypoint for Cronoweath backend.
+﻿"""FastAPI application entrypoint for Cronoweath backend.
 
 This module wires HTTP endpoints to the data engines (mock or NASA) and
 implements the contract described in docs/api-contract.md. It currently focuses
@@ -33,16 +33,28 @@ from .utils import default_units, now_iso, timeseries_to_csv
 # Configuration & engine selection
 # ---------------------------------------------------------------------------
 
-CANDIDATE_PATHS = [
-    Path(__file__).resolve().parents[3] / "src" / "config" / "thresholds.json",
-    Path(__file__).resolve().parents[2] / "src" / "config" / "thresholds.json",
-]
-for candidate in CANDIDATE_PATHS:
-    if candidate.exists():
-        _CONFIG_PATH = candidate
-        break
-else:  # pragma: no cover - config must exist for app to boot
-    raise RuntimeError("thresholds.json configuration file not found in expected locations.")
+# Resolve thresholds.json robustly (supports monorepo and env override)
+_env_thresholds = os.getenv("THRESHOLDS_PATH")
+_CONFIG_PATH = None
+if _env_thresholds:
+    env_path = Path(_env_thresholds)
+    if env_path.is_file():
+        _CONFIG_PATH = env_path
+
+if _CONFIG_PATH is None:
+    here = Path(__file__).resolve()
+    parents = list(here.parents)
+    # Try a handful of ancestor levels, appending src/config/thresholds.json
+    for idx in range(min(len(parents), 6)):
+        candidate = parents[idx] / "src" / "config" / "thresholds.json"
+        if candidate.is_file():
+            _CONFIG_PATH = candidate
+            break
+
+if _CONFIG_PATH is None:  # pragma: no cover - config must exist for app to boot
+    raise RuntimeError(
+        "thresholds.json not found. Set THRESHOLDS_PATH or place it under src/config/."
+    )
 
 with _CONFIG_PATH.open("r", encoding="utf-8") as fh:
     CONF = json.load(fh)
@@ -411,4 +423,5 @@ def download(
 
 
 __all__ = ["app"]
+
 
