@@ -44,11 +44,19 @@ if _env_thresholds:
 if _CONFIG_PATH is None:
     here = Path(__file__).resolve()
     parents = list(here.parents)
-    # Try a handful of ancestor levels, appending src/config/thresholds.json
+    # Try a handful of ancestor levels, checking both ./thresholds.json
+    # and ./src/config/thresholds.json at each level.
     for idx in range(min(len(parents), 6)):
-        candidate = parents[idx] / "src" / "config" / "thresholds.json"
-        if candidate.is_file():
-            _CONFIG_PATH = candidate
+        base = parents[idx]
+        for rel in [
+            ("thresholds.json",),
+            ("src", "config", "thresholds.json"),
+        ]:
+            candidate = base.joinpath(*rel)
+            if candidate.is_file():
+                _CONFIG_PATH = candidate
+                break
+        if _CONFIG_PATH is not None:
             break
 
 if _CONFIG_PATH is None:  # pragma: no cover - config must exist for app to boot
