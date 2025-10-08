@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-const DAY_LABELS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const DAY_LABELS = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
 
 function buildCalendar(year, month) {
   const firstDay = new Date(year, month, 1).getDay();

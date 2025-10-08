@@ -108,6 +108,15 @@ export default function ResultsCard({ data }) {
     histogram,
   } = data;
 
+  const temperatureValue = Number.isFinite(temperature?.value)
+    ? Number(temperature.value)
+    : null;
+  const temperatureLabel = temperatureValue != null ? temperatureValue.toFixed(1) : "--";
+  const temperatureUnit = temperatureValue != null ? temperature?.unit ?? "" : "";
+
+  const humidityValue = Number.isFinite(Number(humidity)) ? Number(humidity) : null;
+  const humidityLabel = humidityValue != null ? humidityValue.toFixed(1) : "--";
+
   const polylinePoints = buildPolylinePoints(histogram.values);
   const areaPoints = buildAreaPoints(histogram.values);
 
@@ -172,10 +181,13 @@ export default function ResultsCard({ data }) {
                 Temp
               </p>
               <p className="mt-1 text-3xl font-extrabold text-slate-800">
-                {temperature.value}
-                <span className="text-base font-semibold text-slate-500">
-                  {temperature.unit}
-                </span>
+                {temperatureLabel}
+                {temperatureUnit ? (
+                  <span className="text-base font-semibold text-slate-500">
+                    {" "}
+                    {temperatureUnit}
+                  </span>
+                ) : null}
               </p>
               <p className="text-[11px] uppercase tracking-[0.32em] text-slate-400">
                 Estimated average grades
@@ -213,10 +225,11 @@ export default function ResultsCard({ data }) {
             Probability
           </p>
           <p className="mt-3 text-5xl font-extrabold text-slate-800">
-            {humidity}%
+            {humidityLabel}
+            {humidityValue != null ? "%" : ""}
           </p>
           <p className="text-xs font-medium uppercase tracking-[0.35em] text-slate-400">
-            Humidity
+            Serie historica
           </p>
         </div>
       </div>

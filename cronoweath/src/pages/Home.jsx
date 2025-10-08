@@ -1,8 +1,43 @@
-﻿import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Calendar from "../components/Calendar.jsx";
+import ResultsView from "../components/ResultsView.jsx";
+import { getConditionList, prepareConditionViewData } from "../utils/results.js";
 import "./home-figma.css";
 
 const MIN_QUERY_LENGTH = 3;
+
+const API_BASE_URL = (() => {
+  const value = import.meta.env?.VITE_API_URL;
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value.trim().replace(/\/+$/, "");
+  }
+  return "http://localhost:8000";
+})();
+
+const WEEKDAYS_LONG = [
+  "Domingo",
+  "Lunes",
+  "Martes",
+  "Miercoles",
+  "Jueves",
+  "Viernes",
+  "Sabado",
+];
+
+const MONTHS_LONG = [
+  "enero",
+  "febrero",
+  "marzo",
+  "abril",
+  "mayo",
+  "junio",
+  "julio",
+  "agosto",
+  "septiembre",
+  "octubre",
+  "noviembre",
+  "diciembre",
+];
 
 async function geocodeLocation(query, { signal } = {}) {
   const trimmed = query.trim();
@@ -41,18 +76,32 @@ function getInitialCursor() {
 }
 
 function formatCoordinate(value) {
+  if (!Number.isFinite(value)) {
+    return "--";
+  }
   const sign = value >= 0 ? "+" : "";
-  return `${sign}${value.toFixed(4)}°`;
+  return `${sign}${value.toFixed(4)} deg`;
 }
 
 function formatSelectedDate(date) {
-  if (!date) return "Selecciona un día en el calendario";
-  return date.toLocaleDateString("es-ES", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return "Selecciona un dia en el calendario";
+  }
+  const weekday = WEEKDAYS_LONG[date.getDay()];
+  const day = date.getDate();
+  const month = MONTHS_LONG[date.getMonth()];
+  const year = date.getFullYear();
+  return `${weekday}, ${day} ${month} ${year}`;
+}
+
+function buildTargetDay(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return null;
+  }
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 const Home = () => {
@@ -69,11 +118,41 @@ const Home = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [calendarCursor, setCalendarCursor] = useState(getInitialCursor);
 
+  const [conditionsConfig, setConditionsConfig] = useState(null);
+  const [loadingConditions, setLoadingConditions] = useState(false);
+  const [conditionsError, setConditionsError] = useState(null);
+
+  const [resultsByCondition, setResultsByCondition] = useState({});
+  const [activeCondition, setActiveCondition] = useState(null);
+  const [loadingResults, setLoadingResults] = useState(false);
+  const [resultsError, setResultsError] = useState(null);
+
   const closeTimerRef = useRef(null);
   const fetchControllerRef = useRef(null);
+  const resultsControllerRef = useRef(null);
   const inputRef = useRef(null);
 
   const trimmedQuery = query.trim();
+
+  const conditionOptions = useMemo(
+    () => getConditionList(conditionsConfig),
+    [conditionsConfig],
+  );
+  const conditionKeys = useMemo(
+    () => conditionOptions.map((item) => item.key),
+    [conditionOptions],
+  );
+
+  const clearResults = useCallback(() => {
+    if (resultsControllerRef.current) {
+      resultsControllerRef.current.abort();
+      resultsControllerRef.current = null;
+    }
+    setResultsByCondition({});
+    setActiveCondition(null);
+    setResultsError(null);
+    setLoadingResults(false);
+  }, []);
 
   const clearCloseTimer = useCallback(() => {
     if (closeTimerRef.current) {
@@ -82,16 +161,49 @@ const Home = () => {
     }
   }, []);
 
-  useEffect(
-    () => () => {
-      clearCloseTimer();
-      if (fetchControllerRef.current) {
-        fetchControllerRef.current.abort();
-        fetchControllerRef.current = null;
-      }
-    },
-    [clearCloseTimer],
-  );
+  useEffect(() => () => {
+    clearCloseTimer();
+    if (fetchControllerRef.current) {
+      fetchControllerRef.current.abort();
+      fetchControllerRef.current = null;
+    }
+    if (resultsControllerRef.current) {
+      resultsControllerRef.current.abort();
+      resultsControllerRef.current = null;
+    }
+  }, [clearCloseTimer]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingConditions(true);
+    fetch(`${API_BASE_URL}/conditions`)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((data) => {
+        if (!cancelled) {
+          setConditionsConfig(data);
+          setConditionsError(null);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          console.error(error);
+          setConditionsError("No se pudo cargar la configuracion. Se usaran valores por defecto.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingConditions(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (step !== "search") {
@@ -205,21 +317,25 @@ const Home = () => {
     }, 120);
   };
 
-  const activateLocation = useCallback((location) => {
-    setSelectedLocation(location);
-    setResolvedLocation(location);
-    setQuery(location.label);
-    setPanelOpen(false);
-    setSuggestions([]);
-    setSuggestionsError(null);
-    setLocationError(null);
-    setResolvingSubmit(false);
-    setSelectedDate(null);
-    const today = new Date();
-    setCalendarCursor({ year: today.getFullYear(), month: today.getMonth() });
-    setStep("calendar");
-    requestAnimationFrame(() => inputRef.current?.blur());
-  }, []);
+  const activateLocation = useCallback(
+    (location) => {
+      clearResults();
+      setSelectedLocation(location);
+      setResolvedLocation(location);
+      setQuery(location.label);
+      setPanelOpen(false);
+      setSuggestions([]);
+      setSuggestionsError(null);
+      setLocationError(null);
+      setResolvingSubmit(false);
+      setSelectedDate(null);
+      const today = new Date();
+      setCalendarCursor({ year: today.getFullYear(), month: today.getMonth() });
+      setStep("calendar");
+      requestAnimationFrame(() => inputRef.current?.blur());
+    },
+    [clearResults],
+  );
 
   const handleSuggestionClick = (suggestion) => {
     activateLocation(suggestion);
@@ -237,7 +353,7 @@ const Home = () => {
     const trimmed = trimmedQuery;
     if (!trimmed) {
       setResolvedLocation(null);
-      setLocationError("Ingresa una ubicación para continuar.");
+      setLocationError("Ingresa una ubicacion para continuar.");
       return;
     }
 
@@ -255,7 +371,7 @@ const Home = () => {
       if (!results.length) {
         setResolvedLocation(null);
         setSelectedLocation(null);
-        setLocationError("No encontramos esa ubicación. Intenta con otra.");
+        setLocationError("No encontramos esa ubicacion. Intenta con otra.");
         return;
       }
       activateLocation(results[0]);
@@ -263,7 +379,7 @@ const Home = () => {
       console.error(error);
       setResolvedLocation(null);
       setSelectedLocation(null);
-      setLocationError("No se pudo consultar la ubicación. Intenta de nuevo.");
+      setLocationError("No se pudo consultar la ubicacion. Intenta de nuevo.");
     } finally {
       setResolvingSubmit(false);
     }
@@ -290,6 +406,7 @@ const Home = () => {
   };
 
   const handleChangeLocation = () => {
+    clearResults();
     setStep("search");
     setPanelOpen(false);
     setSuggestions([]);
@@ -299,184 +416,403 @@ const Home = () => {
     setQuery(resolvedLocation ? resolvedLocation.label : "");
   };
 
+  const buildQueryPayload = useCallback(
+    (conditionKey, targetDay) => {
+      if (!resolvedLocation) {
+        return null;
+      }
+      const conditionConfig = conditionsConfig?.conditions?.[conditionKey] ?? {};
+      const payload = {
+        location: {
+          lat: resolvedLocation.lat,
+          lon: resolvedLocation.lon,
+        },
+        target_day: targetDay,
+        condition: conditionKey,
+        logic: conditionConfig.logic ?? "ANY",
+        units: "SI",
+        thresholds: conditionConfig.thresholds ?? undefined,
+        window_days: conditionsConfig?.window_days ?? 15,
+        years_mode: conditionsConfig?.years_mode ?? "lastN",
+        lastN_years: conditionsConfig?.lastN_years ?? 20,
+        include_timeseries: true,
+      };
+      if (payload.thresholds == null) {
+        delete payload.thresholds;
+      }
+      return payload;
+    },
+    [conditionsConfig, resolvedLocation],
+  );
 
-const renderSearchStep = () => {
-  const meta =
-    step === "search" && resolvedLocation
-      ? [
-          resolvedLocation.label,
-          `Lat ${formatCoordinate(resolvedLocation.lat)}`,
-          `Lon ${formatCoordinate(resolvedLocation.lon)}`,
-          resolvedLocation.timezone ? `Zona horaria: ${resolvedLocation.timezone}` : null,
-          resolvedLocation.country
-            ? resolvedLocation.admin1
-              ? `${resolvedLocation.admin1}, ${resolvedLocation.country}`
-              : resolvedLocation.country
-            : null,
-          resolvedLocation.elevation != null ? `Altitud: ${resolvedLocation.elevation} m` : null,
-        ].filter(Boolean)
-      : [];
+  const handleFetchResults = useCallback(async () => {
+    if (!resolvedLocation) {
+      setResultsError("Selecciona una ubicacion antes de continuar.");
+      return;
+    }
+    if (!selectedDate) {
+      setResultsError("Selecciona una fecha en el calendario.");
+      return;
+    }
+    if (!conditionKeys.length) {
+      setResultsError("No hay condiciones disponibles para consultar.");
+      return;
+    }
 
-  return (
-    <div className="main-page">
-      <main>
-        <h1 className="main-title">CRONOWEATH</h1>
-        <form className="search-form" onSubmit={handleSubmit}>
-          <div className="search-box">
-            <label className="sr-only" htmlFor="location-input">
-              Buscar ubicación
-            </label>
-            <input
-              id="location-input"
-              ref={inputRef}
-              type="text"
-              placeholder="Ingresa una ciudad o ubicación"
-              value={query}
-              onChange={(event) => {
-                setQuery(event.target.value);
-                setPanelOpen(true);
-              }}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              autoComplete="off"
-            />
-            <button
-              type="submit"
-              className="search-button-inner"
-              aria-label="Buscar ubicación"
-              disabled={resolvingSubmit || trimmedQuery.length < MIN_QUERY_LENGTH}
+    const targetDay = buildTargetDay(selectedDate);
+    if (!targetDay) {
+      setResultsError("La fecha seleccionada no es valida.");
+      return;
+    }
+
+    if (resultsControllerRef.current) {
+      resultsControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    resultsControllerRef.current = controller;
+
+    setLoadingResults(true);
+    setResultsError(null);
+    setResultsByCondition({});
+    setActiveCondition(null);
+    setStep("results");
+
+    try {
+      const responses = await Promise.all(
+        conditionKeys.map(async (conditionKey) => {
+          const payload = buildQueryPayload(conditionKey, targetDay);
+          if (!payload) {
+            return { condition: conditionKey, status: "error", message: "Falta ubicacion" };
+          }
+          try {
+            const response = await fetch(`${API_BASE_URL}/query`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+              signal: controller.signal,
+            });
+
+            if (!response.ok) {
+              const detail = await response.json().catch(() => null);
+              const message =
+                typeof detail?.detail === "string"
+                  ? detail.detail
+                  : `Error ${response.status} al consultar la condicion ${conditionKey}`;
+              return { condition: conditionKey, status: "error", message };
+            }
+
+            const data = await response.json();
+            if (data?.status === "insufficient_sample") {
+              return { condition: conditionKey, status: "insufficient", payload: data };
+            }
+            if (!data?.query_id) {
+              return {
+                condition: conditionKey,
+                status: "error",
+                message: "Respuesta inesperada del servicio.",
+              };
+            }
+            const view = prepareConditionViewData({
+              response: data,
+              condition: conditionKey,
+              selectedDate,
+              locationLabel: resolvedLocation.label,
+            });
+            return { condition: conditionKey, status: "ok", payload: data, view };
+          } catch (error) {
+            if (controller.signal.aborted) {
+              return { condition: conditionKey, status: "aborted" };
+            }
+            return {
+              condition: conditionKey,
+              status: "error",
+              message:
+                error instanceof Error ? error.message : "Error desconocido al consultar datos.",
+            };
+          }
+        }),
+      );
+
+      const nextResults = {};
+      let firstOk = null;
+      let okCount = 0;
+
+      responses.forEach((item) => {
+        if (item.status === "aborted") {
+          return;
+        }
+        if (item.status === "ok") {
+          okCount += 1;
+          nextResults[item.condition] = {
+            status: "ok",
+            payload: item.payload,
+            view: item.view,
+            probability: item.view?.probability ?? null,
+          };
+          if (!firstOk) {
+            firstOk = item.condition;
+          }
+        } else if (item.status === "insufficient") {
+          nextResults[item.condition] = {
+            status: "insufficient",
+            payload: item.payload,
+            probability: null,
+          };
+        } else {
+          nextResults[item.condition] = {
+            status: "error",
+            message: item.message ?? "No se pudo consultar esta condicion.",
+            probability: null,
+          };
+        }
+      });
+
+      setResultsByCondition(nextResults);
+      setActiveCondition((prev) => {
+        if (prev && nextResults[prev]) {
+          return prev;
+        }
+        return firstOk ?? conditionKeys[0];
+      });
+
+      if (okCount === 0) {
+        setResultsError("No se pudo calcular ninguna condicion para la seleccion realizada.");
+      } else {
+        setResultsError(null);
+      }
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        console.error(error);
+        setResultsError(
+          error instanceof Error ? error.message : "No se pudo completar la consulta.",
+        );
+      }
+    } finally {
+      if (resultsControllerRef.current === controller) {
+        resultsControllerRef.current = null;
+      }
+      setLoadingResults(false);
+    }
+  }, [conditionKeys, resolvedLocation, selectedDate, buildQueryPayload]);
+
+  const renderSearchStep = () => {
+    const meta =
+      step === "search" && resolvedLocation
+        ? [
+            resolvedLocation.label,
+            `Lat ${formatCoordinate(resolvedLocation.lat)}`,
+            `Lon ${formatCoordinate(resolvedLocation.lon)}`,
+            resolvedLocation.timezone ? `Zona horaria: ${resolvedLocation.timezone}` : null,
+            resolvedLocation.country
+              ? resolvedLocation.admin1
+                ? `${resolvedLocation.admin1}, ${resolvedLocation.country}`
+                : resolvedLocation.country
+              : null,
+            resolvedLocation.elevation != null ? `Altitud: ${resolvedLocation.elevation} m` : null,
+          ].filter(Boolean)
+        : [];
+
+    return (
+      <div className="main-page">
+        <main>
+          <h1 className="main-title">CRONOWEATH</h1>
+          <form className="search-form" onSubmit={handleSubmit}>
+            <div className="search-box">
+              <label className="sr-only" htmlFor="location-input">
+                Buscar ubicacion
+              </label>
+              <input
+                id="location-input"
+                ref={inputRef}
+                type="text"
+                placeholder="Ingresa una ciudad o ubicacion"
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setPanelOpen(true);
+                }}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                autoComplete="off"
+              />
+              <button
+                type="submit"
+                className="search-button-inner"
+                aria-label="Buscar ubicacion"
+                disabled={resolvingSubmit || trimmedQuery.length < MIN_QUERY_LENGTH}
+              >
+                <i className="fas fa-search" />
+              </button>
+            </div>
+            <div
+              className={`suggestions-panel ${panelOpen ? "is-open" : ""}`}
+              role="listbox"
+              aria-label="Ubicaciones sugeridas"
             >
-              <i className="fas fa-search" />
-            </button>
-          </div>
-          <div
-            className={`suggestions-panel ${panelOpen ? "is-open" : ""}`}
-            role="listbox"
-            aria-label="Ubicaciones sugeridas"
-          >
-            <ul>
-              {loadingSuggestions ? (
-                <li className="suggestion-item is-placeholder">Buscando ubicaciones...</li>
-              ) : suggestions.length > 0 ? (
-                suggestions.map((item) => (
-                  <li
-                    key={`${item.lat}:${item.lon}`}
-                    className="suggestion-item"
-                    role="option"
-                    tabIndex={-1}
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => handleSuggestionClick(item)}
-                  >
-                    <i className="fas fa-location-dot" />
-                    {item.label}
+              <ul>
+                {loadingSuggestions ? (
+                  <li className="suggestion-item is-placeholder">Buscando ubicaciones...</li>
+                ) : suggestions.length > 0 ? (
+                  suggestions.map((item) => (
+                    <li
+                      key={`${item.lat}:${item.lon}`}
+                      className="suggestion-item"
+                      role="option"
+                      tabIndex={-1}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => handleSuggestionClick(item)}
+                    >
+                      <i className="fas fa-location-dot" />
+                      {item.label}
+                    </li>
+                  ))
+                ) : trimmedQuery.length >= MIN_QUERY_LENGTH && !suggestionsError ? (
+                  <li className="suggestion-item is-placeholder">Sin resultados</li>
+                ) : trimmedQuery ? (
+                  <li className="suggestion-item is-placeholder">
+                    Escribe al menos {MIN_QUERY_LENGTH} caracteres
                   </li>
-                ))
-              ) : trimmedQuery.length >= MIN_QUERY_LENGTH && !suggestionsError ? (
-                <li className="suggestion-item is-placeholder">Sin resultados</li>
-              ) : trimmedQuery ? (
-                <li className="suggestion-item is-placeholder">
-                  Escribe al menos {MIN_QUERY_LENGTH} caracteres
+                ) : (
+                  <li className="suggestion-item is-placeholder">Escribe el nombre de una ciudad</li>
+                )}
+                {suggestionsError ? (
+                  <li className="suggestion-item is-error">{suggestionsError}</li>
+                ) : null}
+              </ul>
+            </div>
+          </form>
+
+          {resolvingSubmit ? (
+            <p className="search-status">Resolviendo ubicacion.</p>
+          ) : null}
+          {locationError ? (
+            <p className="location-error" role="alert">
+              {locationError}
+            </p>
+          ) : null}
+          {conditionsError ? (
+            <p className="location-error" role="alert">
+              {conditionsError}
+            </p>
+          ) : null}
+          {meta.length ? (
+            <ul className="last-location">
+              {meta.map((item) => (
+                <li key={item} className="meta-chip">
+                  {item}
                 </li>
-              ) : (
-                <li className="suggestion-item is-placeholder">Escribe el nombre de una ciudad</li>
-              )}
-              {suggestionsError ? (
-                <li className="suggestion-item is-error">{suggestionsError}</li>
-              ) : null}
+              ))}
+            </ul>
+          ) : null}
+        </main>
+        <footer className="app-footer-bottom">
+          <p className="small-text">Analizando decadas de datos NASA.</p>
+        </footer>
+      </div>
+    );
+  };
+
+  const renderCalendarStep = () => {
+    if (!resolvedLocation) return null;
+
+    const meta = [
+      `Lat ${formatCoordinate(resolvedLocation.lat)}`,
+      `Lon ${formatCoordinate(resolvedLocation.lon)}`,
+      resolvedLocation.timezone && `Zona horaria: ${resolvedLocation.timezone}`,
+      resolvedLocation.country &&
+        (resolvedLocation.admin1
+          ? `${resolvedLocation.admin1}, ${resolvedLocation.country}`
+          : resolvedLocation.country),
+      resolvedLocation.elevation != null && `Altitud: ${resolvedLocation.elevation} m`,
+    ].filter(Boolean);
+
+    return (
+      <div className="calendar-page">
+        <header className="calendar-header">
+          <div>
+            <p className="calendar-heading">Ubicacion confirmada</p>
+            <h2 className="calendar-location">{resolvedLocation.label}</h2>
+            <ul className="calendar-meta">
+              {meta.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
             </ul>
           </div>
-        </form>
+          <button type="button" className="calendar-back" onClick={handleChangeLocation}>
+            Cambiar ubicacion
+          </button>
+        </header>
 
-        {resolvingSubmit ? (
-          <p className="search-status">Resolviendo ubicación…</p>
-        ) : null}
-        {locationError ? (
-          <p className="location-error" role="alert">
-            {locationError}
-          </p>
-        ) : null}
-        {meta.length ? (
-          <ul className="last-location">
-            {meta.map((item) => (
-              <li key={item} className="meta-chip">
-                {item}
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </main>
-      <footer className="app-footer-bottom">
-        <p className="small-text">Analyzing decades of NASA data.</p>
-      </footer>
-    </div>
-  );
-};
-
-
-const renderCalendarStep = () => {
-  if (!resolvedLocation) return null;
-
-  const meta = [
-    `Lat ${formatCoordinate(resolvedLocation.lat)}`,
-    `Lon ${formatCoordinate(resolvedLocation.lon)}`,
-    resolvedLocation.timezone && `Zona horaria: ${resolvedLocation.timezone}`,
-    resolvedLocation.country &&
-      (resolvedLocation.admin1
-        ? `${resolvedLocation.admin1}, ${resolvedLocation.country}`
-        : resolvedLocation.country),
-    resolvedLocation.elevation != null && `Altitud: ${resolvedLocation.elevation} m`,
-  ].filter(Boolean);
-
-  return (
-    <div className="calendar-page">
-      <header className="calendar-header">
-        <div>
-          <p className="calendar-heading">Ubicación confirmada</p>
-          <h2 className="calendar-location">{resolvedLocation.label}</h2>
-          <ul className="calendar-meta">
-            {meta.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        </div>
-        <button type="button" className="calendar-back" onClick={handleChangeLocation}>
-          Cambiar ubicación
-        </button>
-      </header>
-
-      <section className="calendar-content">
-        <div className="calendar-widget">
-          <Calendar
-            cursor={calendarCursor}
-            selectedDate={selectedDate}
-            onPrevMonth={handlePrevMonth}
-            onNextMonth={handleNextMonth}
-            onSelectDay={handleSelectDay}
-          />
-        </div>
-        <aside className="calendar-sidebar">
-          <h3 className="calendar-sidebar-title">Fecha seleccionada</h3>
-          <p className="calendar-selected">{formatSelectedDate(selectedDate)}</p>
-          <div className="calendar-actions">
-            <button
-              type="button"
-              className="calendar-secondary"
-              onClick={() => setSelectedDate(null)}
-              disabled={!selectedDate}
-            >
-              Limpiar fecha
-            </button>
-            <button type="button" className="calendar-primary" disabled={!selectedDate}>
-              Continuar
-            </button>
+        <section className="calendar-content">
+          <div className="calendar-widget">
+            <Calendar
+              cursor={calendarCursor}
+              selectedDate={selectedDate}
+              onPrevMonth={handlePrevMonth}
+              onNextMonth={handleNextMonth}
+              onSelectDay={handleSelectDay}
+            />
           </div>
-        </aside>
-      </section>
-    </div>
-  );
-};
+          <aside className="calendar-sidebar">
+            <h3 className="calendar-sidebar-title">Fecha seleccionada</h3>
+            <p className="calendar-selected">{formatSelectedDate(selectedDate)}</p>
+            <div className="calendar-actions">
+              <button
+                type="button"
+                className="calendar-secondary"
+                onClick={() => setSelectedDate(null)}
+                disabled={!selectedDate}
+              >
+                Limpiar fecha
+              </button>
+              <button
+                type="button"
+                className="calendar-primary"
+                onClick={handleFetchResults}
+                disabled={
+                  !selectedDate || loadingResults || (loadingConditions && !conditionsConfig)
+                }
+              >
+                {loadingResults ? "Consultando..." : "Continuar"}
+              </button>
+            </div>
+          </aside>
+        </section>
+      </div>
+    );
+  };
 
-  return step === "search" ? renderSearchStep() : renderCalendarStep();
+  const handleBackToCalendar = () => {
+    if (resultsControllerRef.current) {
+      resultsControllerRef.current.abort();
+      resultsControllerRef.current = null;
+    }
+    setLoadingResults(false);
+    setStep("calendar");
+  };
+
+  const renderResultsStep = () => (
+    <ResultsView
+      location={resolvedLocation}
+      selectedDate={selectedDate}
+      conditions={conditionOptions}
+      activeCondition={activeCondition}
+      onSelectCondition={(key) => setActiveCondition(key)}
+      results={resultsByCondition}
+      loading={loadingResults}
+      error={resultsError}
+      onRetry={handleFetchResults}
+      onBack={handleBackToCalendar}
+    />
+  );
+
+  if (step === "results") {
+    return renderResultsStep();
+  }
+  if (step === "calendar") {
+    return renderCalendarStep();
+  }
+  return renderSearchStep();
 };
 
 export default Home;
