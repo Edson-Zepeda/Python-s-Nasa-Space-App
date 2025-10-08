@@ -61,13 +61,62 @@ def _to_opendap_url(link: str) -> str:
     return link.replace("/data/", "/opendap/")
 
 
+def _extract_links(granule: Any) -> List[str]:
+    """Try multiple earthaccess APIs to extract downloadable links from a granule."""
+    # Prefer newer API first
+    try:
+        if hasattr(ea, "get_data_links"):
+            found = ea.get_data_links([granule], link_type="https")
+            if found:
+                return list(found)
+    except Exception:
+        pass
+
+    # Fallback to older helper
+    try:
+        if hasattr(ea, "data_links"):
+            found = ea.data_links([granule], link_type="https")
+            if found:
+                return list(found)
+    except Exception:
+        pass
+
+    # Try object methods/attributes present in some versions
+    try:
+        if hasattr(granule, "data_links") and callable(getattr(granule, "data_links")):
+            found = granule.data_links()
+            if found:
+                return list(found)
+    except Exception:
+        pass
+
+    try:
+        raw = getattr(granule, "links", None)
+        links: List[str] = []
+        if isinstance(raw, (list, tuple)):
+            for item in raw:
+                href = item.get("href") if isinstance(item, dict) else None
+                if href:
+                    links.append(href)
+        return links
+    except Exception:
+        return []
+
+
 def granules_to_opendap_urls(granules: List[ea.DataGranule]) -> List[str]:
     urls: List[str] = []
     for granule in granules:
-        links = ea.data_links([granule], link_type="https")
+        links = _extract_links(granule)
         for link in links:
-            if link.endswith(".nc4") and ("/data/" in link or "/opendap/" in link):
-                urls.append(_to_opendap_url(link))
+            try:
+                if isinstance(link, bytes):
+                    link = link.decode("utf-8", errors="ignore")
+                if not isinstance(link, str):
+                    continue
+                if link.endswith(".nc4") and ("/data/" in link or "/opendap/" in link):
+                    urls.append(_to_opendap_url(link))
+            except Exception:
+                continue
     return sorted(set(urls))
 
 
