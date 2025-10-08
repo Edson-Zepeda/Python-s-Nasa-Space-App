@@ -1,1 +1,1 @@
-web: bash -lc 'if [ -n "$EARTHDATA_NETRC" ]; then printf "%s\n" "$EARTHDATA_NETRC" > ~/.netrc && chmod 600 ~/.netrc; fi; python3.11 -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}'
+web: bash -lc 'source /app/.venv/bin/activate && if [ -n "$EARTHDATA_NETRC" ]; then printf "%s\n" "$EARTHDATA_NETRC" > ~/.netrc && chmod 600 ~/.netrc; fi; python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}'
