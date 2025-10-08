@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAY_LABELS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 function buildCalendar(year, month) {
   const firstDay = new Date(year, month, 1).getDay();
@@ -25,10 +25,6 @@ function buildCalendar(year, month) {
   return weeks;
 }
 
-function classNames(...classes) {
-  return classes.filter(Boolean).join(" ");
-}
-
 export default function Calendar({
   cursor,
   selectedDate,
@@ -37,8 +33,9 @@ export default function Calendar({
   onSelectDay,
 }) {
   const { year, month } = cursor;
-  const monthLabel = new Date(year, month).toLocaleString("en-US", {
+  const monthLabel = new Date(year, month).toLocaleString("es-ES", {
     month: "long",
+    year: "numeric",
   });
 
   const weeks = useMemo(() => buildCalendar(year, month), [year, month]);
@@ -56,61 +53,35 @@ export default function Calendar({
       : null;
 
   return (
-    <div className="rounded-[32px] border border-white/60 bg-white/80 p-6 shadow-glass backdrop-blur">
-      <div className="mb-6 flex items-center justify-between text-slate-600">
-        <button
-          type="button"
-          onClick={onPrevMonth}
-          className="grid h-10 w-10 place-items-center rounded-2xl border border-white/70 bg-white/80 text-slate-600 transition hover:border-white hover:bg-white"
-          aria-label="Previous month"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            className="h-4 w-4"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.5 19.5 8 12l7.5-7.5" />
+    <div className="cwx-calendar">
+      <div className="cwx-calendar__header">
+        <button type="button" onClick={onPrevMonth} className="cwx-calendar__nav" aria-label="Mes anterior">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19 8 12 15 5" />
           </svg>
         </button>
-        <div className="text-lg font-semibold text-slate-700">
-          {monthLabel} {year}
-        </div>
-        <button
-          type="button"
-          onClick={onNextMonth}
-          className="grid h-10 w-10 place-items-center rounded-2xl border border-white/70 bg-white/80 text-slate-600 transition hover:border-white hover:bg-white"
-          aria-label="Next month"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            className="h-4 w-4"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="m8.5 4.5 7.5 7.5-7.5 7.5" />
+        <div className="cwx-calendar__month">{monthLabel}</div>
+        <button type="button" onClick={onNextMonth} className="cwx-calendar__nav" aria-label="Mes siguiente">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
           </svg>
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-2 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <div className="cwx-calendar__weekdays">
         {DAY_LABELS.map((day) => (
-          <div key={day} className="py-1">
+          <div key={day} className="cwx-calendar__weekday">
             {day}
           </div>
         ))}
       </div>
 
-      <div className="mt-4 grid grid-cols-7 gap-2">
-        {weeks.map((week, weekIndex) => (
+      <div className="cwx-calendar__grid">
+        {weeks.map((week, weekIndex) =>
           week.map((day, dayIndex) => {
             const key = `${year}-${month}-${weekIndex}-${dayIndex}`;
             if (!day) {
-              return <div key={key} className="h-12" />;
+              return <div key={key} className="cwx-calendar__cell cwx-calendar__cell--empty" />;
             }
 
             const isSelected = selectedDay === day;
@@ -121,21 +92,19 @@ export default function Calendar({
                 key={key}
                 type="button"
                 onClick={() => onSelectDay(day)}
-                className={classNames(
-                  "flex h-12 flex-col items-center justify-center rounded-3xl border border-transparent bg-white/70 text-sm font-medium text-slate-600 transition",
-                  "shadow-inset hover:border-white hover:bg-white hover:text-slate-700",
-                  isSelected && "border-[#7566FF] bg-[#7566FF]/10 text-[#5C4FF7] drop-shadow-glow",
-                  !isSelected && isToday && "border-white/80 text-slate-700"
-                )}
+                className={[
+                  "cwx-calendar__cell",
+                  isSelected ? "is-selected" : "",
+                  !isSelected && isToday ? "is-today" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
               >
-                <span>{String(day).padStart(2, "0")}</span>
-                {isToday && !isSelected ? (
-                  <span className="text-[10px] font-medium uppercase text-slate-400">Today</span>
-                ) : null}
+                {String(day).padStart(2, "0")}
               </button>
             );
-          })
-        ))}
+          }),
+        )}
       </div>
     </div>
   );

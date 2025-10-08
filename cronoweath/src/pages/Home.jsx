@@ -299,6 +299,7 @@ const Home = () => {
     setQuery(resolvedLocation ? resolvedLocation.label : "");
   };
 
+
 const renderSearchStep = () => {
   const meta =
     step === "search" && resolvedLocation
@@ -411,6 +412,7 @@ const renderSearchStep = () => {
   );
 };
 
+
 const renderCalendarStep = () => {
   if (!resolvedLocation) return null;
 
@@ -473,7 +475,6 @@ const renderCalendarStep = () => {
     </div>
   );
 };
-
 
   return step === "search" ? renderSearchStep() : renderCalendarStep();
 };
