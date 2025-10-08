@@ -1,58 +1,130 @@
-import ResultsCard from "./ResultsCard.jsx";
+import { useMemo } from "react";
+import "../styles/results-dashboard.css";
 
-function formatCoordinate(value) {
-  if (!Number.isFinite(value)) {
-    return null;
+function renderIcon(name, variant = "default") {
+  const baseProps = {
+    xmlns: "http://www.w3.org/2000/svg",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.6,
+    className: variant === "default" ? "weather-icon" : "forecast-icon",
+  };
+
+  switch (name) {
+    case "sunny":
+      return (
+        <svg {...baseProps}>
+          <circle cx="12" cy="12" r="4" />
+          <path
+            strokeLinecap="round"
+            d="M12 3v2M12 19v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M3 12h2M19 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+          />
+        </svg>
+      );
+    case "showers":
+      return (
+        <svg {...baseProps}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M7 17.5 5.5 20M11 17.5 9.5 20M15 17.5 13.5 20" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M7 15h9a4 4 0 0 0 0-8 5 5 0 0 0-9.7-1.4A3.5 3.5 0 0 0 7 15Z"
+          />
+        </svg>
+      );
+    case "windy":
+      return (
+        <svg {...baseProps}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 11h12a2.5 2.5 0 1 0-2.4-3" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 15h9a2 2 0 1 1-1.9 2.6" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h6" />
+        </svg>
+      );
+    case "rainy":
+      return (
+        <svg {...baseProps}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="m8 17-1 3m5-3-1 3m5-3-1 3" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M7 15h9a4 4 0 0 0 0-8 5 5 0 0 0-9.7-1.4A3.5 3.5 0 0 0 7 15Z"
+          />
+        </svg>
+      );
+    case "cloudy":
+      return (
+        <svg {...baseProps}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 16h10a4 4 0 1 0-1.5-7.7A5 5 0 0 0 6 6a4 4 0 0 0 0 10Z" />
+        </svg>
+      );
+    case "clear":
+      return (
+        <svg {...baseProps}>
+          <circle cx="9" cy="12" r="4" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M13 12a4 4 0 0 0 7 2.6 4.5 4.5 0 0 1-6-6.2 4 4 0 0 0-1 3.6Z"
+          />
+        </svg>
+      );
+    case "night":
+      return (
+        <svg {...baseProps}>
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M15.5 3a6.5 6.5 0 1 0 6.5 6.5 4.5 4.5 0 0 1-6.5-6.5Z"
+          />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 12a6 6 0 0 0 6 6" />
+        </svg>
+      );
+    default:
+      return (
+        <svg {...baseProps}>
+          <circle cx="12" cy="12" r="4" />
+        </svg>
+      );
   }
-  const sign = value >= 0 ? "+" : "";
-  return `${sign}${value.toFixed(2)} deg`;
 }
 
-function LocationMeta({ location }) {
-  if (!location) {
-    return null;
+function buildPolylinePoints(values) {
+  if (!values?.length) {
+    return "";
+  }
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const range = max === min ? 1 : max - min;
+
+  return values
+    .map((value, index) => {
+      const x = (index / (values.length - 1 || 1)) * 100;
+      const normalizedY = ((value - min) / range) * 80 + 10;
+      const y = 100 - normalizedY;
+      return `${x},${y}`;
+    })
+    .join(" ");
+}
+
+function buildAreaPoints(values) {
+  if (!values?.length) {
+    return "";
   }
 
-  const chips = [
-    location.lat != null ? `Lat ${formatCoordinate(location.lat)}` : null,
-    location.lon != null ? `Lon ${formatCoordinate(location.lon)}` : null,
-    location.timezone ? `Zona horaria ${location.timezone}` : null,
-    location.admin1 && location.country
-      ? `${location.admin1}, ${location.country}`
-      : location.country ?? null,
-    location.elevation != null ? `Altitud ${location.elevation} m` : null,
-  ].filter(Boolean);
+  const polyline = buildPolylinePoints(values);
+  return `0,100 ${polyline} 100,100`;
+}
 
-  if (!chips.length) {
+function ConditionSwitch({ conditions, active, onSelect, results, loading }) {
+  if (!conditions?.length) {
     return null;
   }
 
   return (
-    <ul className="flex flex-wrap gap-2">
-      {chips.map((item) => (
-        <li
-          key={item}
-          className="rounded-full bg-white/50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-slate-600 shadow-inset"
-        >
-          {item}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function ConditionTabs({ conditions, active, onSelect, results, loading }) {
-  if (!conditions.length) {
-    return null;
-  }
-
-  return (
-    <div className="flex flex-wrap gap-2">
+    <div className="condition-switch">
       {conditions.map(({ key, label }) => {
         const entry = results[key];
-        const probability =
-          entry && entry.probability != null ? Number(entry.probability).toFixed(1) : "--";
-        const status = entry?.status ?? "idle";
         const isActive = key === active;
         const disabled = loading && !isActive;
 
@@ -62,17 +134,9 @@ function ConditionTabs({ conditions, active, onSelect, results, loading }) {
             type="button"
             onClick={() => onSelect(key)}
             disabled={disabled}
-            className={[
-              "flex items-center gap-3 rounded-full border px-4 py-2 text-sm font-semibold uppercase tracking-[0.3em] transition",
-              isActive
-                ? "border-white bg-white text-slate-800 shadow-lg"
-                : "border-white/60 bg-white/60 text-slate-600 hover:bg-white",
-            ].join(" ")}
+            className={isActive ? "is-active" : ""}
           >
-            <span>{label}</span>
-            <span className="text-xs text-slate-500">
-              {status === "insufficient" ? "Sin muestra" : `${probability}%`}
-            </span>
+            {label}
           </button>
         );
       })}
@@ -80,132 +144,71 @@ function ConditionTabs({ conditions, active, onSelect, results, loading }) {
   );
 }
 
-function SummarySection({ summary }) {
-  if (!summary) {
+function StatusBanner({ variant = "info", message, actionLabel, onAction }) {
+  if (!message) {
     return null;
   }
 
-  const chips = [];
-  if (summary.sample?.n_days != null) {
-    chips.push(`Muestra ${summary.sample.n_days} dias`);
-  }
-  if (summary.sample?.coverage_pct != null) {
-    chips.push(`Cobertura ${summary.sample.coverage_pct}%`);
-  }
-  if (summary.windowDays != null) {
-    chips.push(`Ventana +/- ${summary.windowDays} dias`);
-  }
-  if (summary.years?.range) {
-    chips.push(`Rango ${summary.years.range}`);
-  }
-  if (summary.logic) {
-    chips.push(`Logica ${summary.logic}`);
-  }
-
   return (
-    <section className="rounded-[32px] border border-white/60 bg-white/70 p-6 shadow-lg">
-      <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">
-        Detalles del calculo
-      </p>
-      <p className="mt-2 text-sm text-slate-600">{summary.threshold}</p>
-
-      {chips.length ? (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {chips.map((chip) => (
-            <span
-              key={chip}
-              className="rounded-full bg-white px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.3em] text-slate-600 shadow-inset"
-            >
-              {chip}
-            </span>
-          ))}
-        </div>
+    <div
+      className="status-banner"
+      style={{
+        background:
+          variant === "error"
+            ? "rgba(255, 99, 99, 0.2)"
+            : variant === "warning"
+              ? "rgba(255, 204, 102, 0.2)"
+              : "rgba(255, 255, 255, 0.24)",
+        borderColor:
+          variant === "error"
+            ? "rgba(255, 99, 99, 0.45)"
+            : variant === "warning"
+              ? "rgba(255, 204, 102, 0.45)"
+              : "rgba(255, 255, 255, 0.35)",
+      }}
+    >
+      <span>{message}</span>
+      {actionLabel ? (
+        <button
+          type="button"
+          onClick={onAction}
+          className="back-button"
+          style={{
+            background: "transparent",
+            color: variant === "error" ? "#8b1d3f" : "#0c2135",
+          }}
+        >
+          {actionLabel}
+        </button>
       ) : null}
-
-      {summary.dataset?.length ? (
-        <div className="mt-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
-            Datasets
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {summary.dataset.map((name) => (
-              <span
-                key={name}
-                className="rounded-full border border-[#7A6BFF]/40 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-[#5a4de1]"
-              >
-                {name}
-              </span>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      {summary.notes?.length ? (
-        <div className="mt-4 text-sm text-slate-600">
-          <ul className="list-disc pl-6">
-            {summary.notes.map((note) => (
-              <li key={note}>{note}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      <div className="mt-4 text-xs text-slate-400">
-        {summary.generatedAt ? <p>Generado: {summary.generatedAt}</p> : null}
-        {summary.queryId ? <p>ID consulta: {summary.queryId}</p> : null}
-      </div>
-    </section>
+    </div>
   );
 }
 
-function Chronogram({ items, windowDays }) {
+function ForecastBar({ items }) {
   if (!items?.length) {
     return null;
   }
 
   return (
-    <section className="rounded-[32px] border border-white/60 bg-white/70 p-6 shadow-lg">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">
-            Cronograma
-          </p>
-          <p className="text-sm text-slate-600">
-            Ventana +/- {windowDays} dias — Probabilidad diaria (%)
-          </p>
+    <nav className="forecast-bar">
+      {items.map((item) => (
+        <div
+          key={item.offset}
+          className={["day", item.offset === 0 ? "active" : ""].filter(Boolean).join(" ")}
+        >
+          <span>{item.weekdayShort}</span>
+          <span>{item.label}</span>
+          {renderIcon(item.icon, "forecast")}
+          <span className="text-xl font-extrabold">
+            {item.probability != null ? `${item.probability.toFixed(1)}%` : "--"}
+          </span>
+          <span style={{ color: item.offset === 0 ? "#0c2135" : "rgba(255,255,255,0.75)", fontSize: "0.7rem" }}>
+            {item.sample ?? 0} dias
+          </span>
         </div>
-      </div>
-
-      <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
-        {items.map((item) => (
-          <div
-            key={item.offset}
-            className={[
-              "min-w-[96px] flex-shrink-0 rounded-3xl border border-white/70 px-3 py-4 text-center shadow-inset transition",
-              item.offset === 0
-                ? "bg-[#7A6BFF] text-white"
-                : "bg-white/90 text-slate-700 hover:bg-white",
-            ].join(" ")}
-          >
-            <p className="text-xs font-semibold uppercase tracking-[0.3em]">
-              {item.weekdayShort}
-            </p>
-            <p className="text-sm font-medium">{item.label}</p>
-            <p className="mt-2 text-2xl font-extrabold">
-              {item.probability != null ? `${item.probability.toFixed(1)}%` : "--"}
-            </p>
-            <p
-              className={[
-                "text-[0.65rem] tracking-[0.2em]",
-                item.offset === 0 ? "text-white/80" : "text-slate-400",
-              ].join(" ")}
-            >
-              {item.sample ?? 0} dias
-            </p>
-          </div>
-        ))}
-      </div>
-    </section>
+      ))}
+    </nav>
   );
 }
 
@@ -222,8 +225,8 @@ export default function ResultsView({
   onBack,
 }) {
   const fallbackLabel = [
-    formatCoordinate(location?.lat),
-    formatCoordinate(location?.lon),
+    location?.lat != null ? `${location.lat.toFixed(2)}°` : null,
+    location?.lon != null ? `${location.lon.toFixed(2)}°` : null,
   ]
     .filter(Boolean)
     .join(", ");
@@ -231,44 +234,70 @@ export default function ResultsView({
   const locationLabel = location?.label ?? (fallbackLabel || "--");
 
   const activeEntry = activeCondition ? results[activeCondition] : null;
-  const cardData = activeEntry?.status === "ok" ? activeEntry.view.card : null;
-  const summary = activeEntry?.status === "ok" ? activeEntry.view.summary : null;
-  const timelineFull =
-    activeEntry?.status === "ok" ? activeEntry.view.timelineFull : [];
-  const insufficient = activeEntry?.status === "insufficient";
-  const errorMessage = activeEntry?.status === "error" ? activeEntry.message : null;
+  const hasResult = activeEntry?.status === "ok";
+  const view = hasResult ? activeEntry.view : null;
+
+  const cardData = view?.card;
+  const summary = view?.summary;
+  const focusDays = view?.timelineFocus?.length
+    ? view.timelineFocus
+    : view?.timelineFull?.slice(0, 7) ?? [];
+
+  const histogramValues = cardData?.histogram?.values ?? [];
+  const polylinePoints = useMemo(
+    () => buildPolylinePoints(histogramValues),
+    [histogramValues],
+  );
+  const areaPoints = useMemo(() => buildAreaPoints(histogramValues), [histogramValues]);
+
+  const headlineIcon =
+    cardData?.histogram?.icons?.[0] ??
+    (focusDays.length ? focusDays[0].icon : undefined) ??
+    "cloudy";
+
+  const infoTags = useMemo(() => {
+    if (!summary) return [];
+
+    const tags = [];
+    if (summary.sample?.n_days != null) {
+      tags.push(`Muestra ${summary.sample.n_days} dias`);
+    }
+    if (summary.sample?.coverage_pct != null) {
+      tags.push(`Cobertura ${summary.sample.coverage_pct}%`);
+    }
+    if (summary.dataset?.length) {
+      summary.dataset.forEach((dataset) => tags.push(dataset));
+    }
+    if (summary.notes?.length) {
+      summary.notes.forEach((note) => tags.push(note));
+    }
+    if (summary.threshold) {
+      tags.push(summary.threshold);
+    }
+    if (summary.windowDays != null) {
+      tags.push(`Ventana +/- ${summary.windowDays} dias`);
+    }
+    return tags;
+  }, [summary]);
+
+  const temperatureValue = cardData?.temperature?.value;
+  const temperatureUnit = cardData?.temperature?.unit;
+  const probability = summary?.probability;
 
   return (
-    <div className="min-h-screen bg-[#9fbac3] pb-12 text-slate-900">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 md:px-6 lg:px-8">
-        <header className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.45em] text-white/80">
-              Resultados historicos NASA
-            </p>
-            <h1 className="text-4xl font-extrabold text-white drop-shadow-xl md:text-5xl">
-              CRONOWEATH
-            </h1>
-            <p className="mt-2 text-base font-medium text-white/80">{locationLabel}</p>
-            <div className="mt-3">
-              <LocationMeta location={location} />
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="rounded-full bg-white/80 px-4 py-2 text-sm font-semibold uppercase tracking-[0.3em] text-slate-700 shadow">
-              {cardData?.dateLabel ?? "--"}
-            </div>
-            <button
-              type="button"
-              onClick={onBack}
-              className="rounded-full border border-white/80 bg-white/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.4em] text-slate-600 transition hover:bg-white"
-            >
+    <div className="results-page">
+      <div className="dashboard-container">
+        <header className="page-header">
+          <h1 className="logo">CRONOWEATH</h1>
+          <div className="header-controls">
+            <div className="selected-date">{cardData?.dateLabel ?? "--"}</div>
+            <button type="button" className="back-button" onClick={onBack}>
               Cambiar fecha
             </button>
           </div>
         </header>
 
-        <ConditionTabs
+        <ConditionSwitch
           conditions={conditions}
           active={activeCondition}
           onSelect={onSelectCondition}
@@ -277,46 +306,160 @@ export default function ResultsView({
         />
 
         {error ? (
-          <div className="rounded-3xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span>{error}</span>
-              <button
-                type="button"
-                onClick={onRetry}
-                className="rounded-full border border-red-400 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-red-700 hover:bg-red-100"
-              >
-                Reintentar
-              </button>
-            </div>
-          </div>
+          <StatusBanner
+            variant="error"
+            message={error}
+            actionLabel="Reintentar"
+            onAction={onRetry}
+          />
         ) : null}
 
-        {errorMessage ? (
-          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 shadow">
-            <span>{errorMessage}</span>
-          </div>
+        {activeEntry?.status === "error" ? (
+          <StatusBanner variant="warning" message={activeEntry.message} />
         ) : null}
 
-        {insufficient ? (
-          <div className="rounded-3xl border border-slate-200 bg-white/70 p-6 text-sm text-slate-600 shadow">
-            No hay muestra suficiente para calcular esta condicion en la ventana seleccionada.
-          </div>
+        {activeEntry?.status === "insufficient" ? (
+          <StatusBanner
+            variant="warning"
+            message="Muestra insuficiente para la condicion seleccionada."
+          />
         ) : null}
 
-        {loading && !cardData ? (
-          <div className="rounded-3xl border border-white/60 bg-white/50 p-8 text-center text-sm font-semibold uppercase tracking-[0.4em] text-slate-600 shadow">
-            Consultando datos de la NASA...
-          </div>
+        {loading && !hasResult ? (
+          <StatusBanner variant="info" message="Consultando datos historicos de la NASA..." />
         ) : null}
 
-        {cardData ? <ResultsCard data={cardData} /> : null}
+        {hasResult ? (
+          <>
+            <section className="card location-card">
+              <div className="card-label">Location</div>
+              <div className="card-content">
+                <div>
+                  <h2 className="card-main-text">{locationLabel}</h2>
+                  <div className="card-footer-text">
+                    {location?.timezone ? `Zona horaria ${location.timezone}` : "Ubicacion confirmada"}
+                  </div>
+                </div>
+                <div className="weather-display">
+                  {renderIcon(headlineIcon)}
+                  <span className="temperature-text">
+                    {Number.isFinite(temperatureValue) ? temperatureValue.toFixed(1) : "--"}
+                  </span>
+                  <div className="temp-toggle">
+                    <span className="active">{temperatureUnit ?? "SI"}</span> | <span>ALT</span>
+                  </div>
+                </div>
+              </div>
+            </section>
 
-        <SummarySection summary={summary} />
-        <Chronogram items={timelineFull} windowDays={summary?.windowDays ?? 0} />
+            <section className="card condition-card">
+              <div className="card-label">Condition</div>
+              <div className="card-content">
+                <h2 className="card-main-text">{cardData?.condition ?? "--"}</h2>
+                <div className="card-side-text">
+                  {probability != null ? `${probability.toFixed(1)}%` : "--"}
+                </div>
+              </div>
+              <div className="metric-line">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 12h16M4 16h10M4 8h8" />
+                </svg>
+                <span>{cardData?.wind ?? "Umbrales por defecto"}</span>
+              </div>
+            </section>
 
-        <footer className="pt-4 text-center text-xs font-semibold uppercase tracking-[0.4em] text-white/80">
-          Analizando decadas de datos NASA
-        </footer>
+            <section className="card histogram-card">
+              <div className="card-header">
+                <div>
+                  <div className="card-label">Histogram</div>
+                  <div className="card-footer-text">{cardData?.histogram?.description}</div>
+                </div>
+                <div className="dropdown-button">
+                  {cardData?.histogram?.comparison ?? "Serie historica"}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    width="16"
+                    height="16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </div>
+              </div>
+
+              <div className="chart-container">
+                <ul className="y-axis">
+                  {[100, 90, 80, 70, 60, 50, 40, 30, 20, 10].map((label) => (
+                    <li key={label}>{label}%</li>
+                  ))}
+                </ul>
+                <div className="chart-area">
+                  <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="histogramGradient" x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="0%" stopColor="rgba(255,255,255,0.35)" />
+                        <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+                      </linearGradient>
+                    </defs>
+                    <polygon fill="url(#histogramGradient)" points={areaPoints} />
+                    <polyline
+                      points={polylinePoints}
+                      fill="none"
+                      stroke="#ffffff"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    {polylinePoints.split(" ").map((point, index) => {
+                      if (!point) return null;
+                      const [cx, cy] = point.split(",").map(Number);
+                      return (
+                        <circle
+                          key={index}
+                          cx={cx}
+                          cy={cy}
+                          r="2.5"
+                          fill="#ffffff"
+                          stroke="rgba(12,33,53,0.18)"
+                          strokeWidth="0.8"
+                        />
+                      );
+                    })}
+                  </svg>
+                </div>
+              </div>
+            </section>
+
+            <ForecastBar items={focusDays} />
+
+            {infoTags.length ? (
+              <div className="info-tags">
+                {infoTags.map((tag) => (
+                  <span key={tag} className="info-tag">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <div className="placeholder-card">
+            {loading ? "Consultando datos historicos..." : "Selecciona una condicion para ver resultados"}
+          </div>
+        )}
+
+        <footer className="page-footer">Analizando decadas de datos NASA</footer>
       </div>
     </div>
   );

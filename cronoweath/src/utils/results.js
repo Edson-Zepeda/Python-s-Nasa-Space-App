@@ -228,6 +228,7 @@ function buildTimeline(condition, response, selectedDate) {
       2,
       "0",
     )}`;
+    const icon = chooseIcon(condition, probability);
 
     return {
       offset,
@@ -237,6 +238,7 @@ function buildTimeline(condition, response, selectedDate) {
       label,
       weekday: WEEKDAY_LABELS[weekdayIndex],
       weekdayShort: WEEKDAY_LABELS_SHORT[weekdayIndex],
+      icon,
     };
   });
 
@@ -256,7 +258,7 @@ function buildTimeline(condition, response, selectedDate) {
 
   const chartValues = focus.map((item) => (item.probability ?? 0));
   const chartLabels = focus.map((item) => item.weekdayShort);
-  const chartIcons = focus.map((item) => chooseIcon(condition, item.probability));
+  const chartIcons = focus.map((item) => item.icon ?? chooseIcon(condition, item.probability));
 
   return {
     windowDays,
@@ -322,6 +324,7 @@ export function prepareConditionViewData({
   return {
     card,
     timelineFull: timeline.timelineFull,
+    timelineFocus: timeline.focus,
     summary: {
       threshold: thresholdSummary,
       dataset: Array.isArray(response.dataset_used) ? response.dataset_used : [],
@@ -349,4 +352,3 @@ export function getConditionList(config) {
 }
 
 export const CONDITION_ORDER = DEFAULT_CONDITION_ORDER;
-

@@ -1,0 +1,412 @@
+.results-page {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 48px 24px;
+  background-color: #a5bfcc;
+  font-family: "Outfit", sans-serif;
+  color: #ffffff;
+  box-sizing: border-box;
+}
+
+.results-page * {
+  box-sizing: border-box;
+}
+
+.dashboard-container {
+  width: min(1280px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.logo {
+  font-weight: 900;
+  font-size: clamp(2.5rem, 6vw, 3.5rem);
+  letter-spacing: 0.12em;
+  margin: 0;
+  text-shadow: 0 0 15px rgba(173, 216, 230, 0.65);
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.selected-date {
+  padding: 0.65rem 1.25rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+
+.back-button {
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.2);
+  color: #0c2135;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  padding: 0.65rem 1.5rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.back-button:hover {
+  background: rgba(255, 255, 255, 0.85);
+  color: #0c2135;
+}
+
+.condition-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.condition-switch button {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  padding: 0.6rem 1.2rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s ease, border 0.2s ease;
+}
+
+.condition-switch button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+.condition-switch button.is-active {
+  background: rgba(12, 33, 53, 0.92);
+  border-color: rgba(12, 33, 53, 0.92);
+  color: #ffffff;
+}
+
+.condition-switch button:disabled:not(.is-active) {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.status-banner {
+  border-radius: 1.25rem;
+  padding: 1rem 1.2rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: rgba(255, 255, 255, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #0c2135;
+}
+
+.status-banner strong {
+  font-weight: 800;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 1rem;
+  padding: 1.5rem 2rem;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.12);
+}
+
+.card-label {
+  color: rgba(236, 241, 243, 0.7);
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  margin-bottom: 0.6rem;
+}
+
+.card-main-text {
+  margin: 0;
+  color: #ffffff;
+  font-weight: 400;
+  font-size: clamp(2.4rem, 4vw, 3.6rem);
+}
+
+.card-footer-text {
+  color: rgba(236, 241, 243, 0.7);
+  font-size: 0.85rem;
+  margin-top: 0.6rem;
+}
+
+.location-card .card-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.weather-display {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.weather-icon {
+  width: 52px;
+  height: 52px;
+  color: #ffffff;
+}
+
+.forecast-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.temperature-text {
+  font-size: clamp(2.5rem, 5vw, 3.2rem);
+  font-weight: 700;
+}
+
+.temp-toggle {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+}
+
+.temp-toggle .active {
+  color: #ffffff;
+}
+
+.condition-card .card-content {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.card-side-text {
+  font-size: clamp(2.4rem, 5vw, 3.4rem);
+  font-weight: 700;
+}
+
+.metric-line {
+  margin-top: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+  color: rgba(12, 33, 53, 0.78);
+}
+
+.metric-line svg {
+  width: 20px;
+  height: 20px;
+}
+
+.histogram-card .card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.dropdown-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.chart-container {
+  display: flex;
+  gap: 1.25rem;
+  height: 140px;
+}
+
+.y-axis {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: rgba(236, 241, 243, 0.6);
+  font-size: 0.75rem;
+  text-align: right;
+}
+
+.chart-area {
+  position: relative;
+  flex: 1;
+  border-radius: 24px;
+  padding: 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0));
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.chart-area svg {
+  width: 100%;
+  height: 100%;
+}
+
+.forecast-bar {
+  display: flex;
+  gap: 0.65rem;
+  overflow-x: auto;
+  padding-bottom: 0.4rem;
+}
+
+.forecast-bar .day {
+  flex: 1 0 120px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 1rem;
+  padding: 0.85rem 0.65rem;
+  text-align: center;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.forecast-bar .day.active {
+  background: #ecf1f3;
+  color: #0c2135;
+  font-weight: 700;
+}
+
+.forecast-bar .day svg {
+  width: 30px;
+  height: 30px;
+  stroke: currentColor;
+}
+
+.info-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.info-tag {
+  padding: 0.45rem 1.2rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.page-footer {
+  text-align: center;
+  width: 100%;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+  margin-top: 1.25rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.placeholder-card {
+  border: 2px dashed rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.12);
+  padding: 2rem;
+  border-radius: 1rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+@media (max-width: 960px) {
+  .results-page {
+    padding: 32px 16px;
+  }
+
+  .dashboard-container {
+    gap: 1.1rem;
+  }
+
+  .card {
+    padding: 1.3rem 1.4rem;
+  }
+
+  .chart-container {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .y-axis {
+    flex-direction: row;
+    justify-content: space-between;
+    font-size: 0.65rem;
+  }
+
+  .chart-area {
+    height: 160px;
+  }
+
+  .forecast-bar .day {
+    flex: 1 0 90px;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-controls {
+    align-self: stretch;
+  }
+
+  .condition-switch {
+    justify-content: flex-start;
+  }
+
+  .location-card .card-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

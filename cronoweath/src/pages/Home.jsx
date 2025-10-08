@@ -11,7 +11,7 @@ const API_BASE_URL = (() => {
   if (typeof value === "string" && value.trim().length > 0) {
     return value.trim().replace(/\/+$/, "");
   }
-  return "http://localhost:8000";
+  return "https://python-s-nasa-space-app-production.up.railway.app";
 })();
 
 const WEEKDAYS_LONG = [
