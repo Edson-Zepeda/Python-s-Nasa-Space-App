@@ -9,3 +9,5 @@ xarray==2024.3.0
 netCDF4==1.7.1
 pydap==3.4.0
 earthaccess==0.10.0
+setuptools>=68.0.0
+wheel>=0.41.0
