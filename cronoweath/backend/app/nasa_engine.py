@@ -7,6 +7,8 @@ from datetime import date, timedelta
 import numpy as np
 import xarray as xr
 import earthaccess as ea
+from pydap.cas.urs import setup_session as urs_setup_session
+import netrc as _netrc
 
 from .formulas import (
     compute_dew_point,
@@ -181,7 +183,18 @@ def merra2_daily_point(lat: float, lon: float, start: str, end: str) -> Dict[str
     rhmax_list: List[xr.DataArray] = []
 
     for url in urls:
-        ds = xr.open_dataset(url)
+        # Usa sesión URS para OPeNDAP con pydap
+        try:
+            nrc = _netrc.netrc()
+            auth = nrc.authenticators("urs.earthdata.nasa.gov")
+            if not auth:
+                raise RuntimeError("Credenciales URS no encontradas en ~/.netrc")
+            username, _, password = auth
+            session = urs_setup_session(username, password, check_url=url)
+            ds = xr.open_dataset(url, engine="pydap", backend_kwargs={"session": session})
+        except Exception:
+            # Fallback: intenta apertura directa (si el servidor permite cookies ya establecidas)
+            ds = xr.open_dataset(url)
         ds = select_point(ds, lat, lon)
 
         T2M = ds["T2M"]
@@ -204,7 +217,10 @@ def merra2_daily_point(lat: float, lon: float, start: str, end: str) -> Dict[str
         if RH2M is not None:
             rhmax_list.append(daily_agg_max(RH2M))
 
-        ds.close()
+        try:
+            ds.close()
+        except Exception:
+            pass
 
     def _combine(items: List[xr.DataArray]) -> xr.DataArray | None:
         return xr.concat(items, dim="time").sortby("time") if items else None
@@ -226,14 +242,26 @@ def imerg_daily_point(lat: float, lon: float, start: str, end: str) -> xr.DataAr
 
     series: List[xr.DataArray] = []
     for url in urls:
-        ds = xr.open_dataset(url)
+        try:
+            nrc = _netrc.netrc()
+            auth = nrc.authenticators("urs.earthdata.nasa.gov")
+            if not auth:
+                raise RuntimeError("Credenciales URS no encontradas en ~/.netrc")
+            username, _, password = auth
+            session = urs_setup_session(username, password, check_url=url)
+            ds = xr.open_dataset(url, engine="pydap", backend_kwargs={"session": session})
+        except Exception:
+            ds = xr.open_dataset(url)
         ds = select_point(ds, lat, lon)
         var = "precipitation" if "precipitation" in ds.data_vars else "precipitationCal"
         pr = ds[var]
         if not np.issubdtype(ds["time"].dtype, np.datetime64):
             ds["time"] = xr.decode_cf(ds).time
         series.append(pr)
-        ds.close()
+        try:
+            ds.close()
+        except Exception:
+            pass
 
     return xr.concat(series, dim="time").sortby("time")
 
