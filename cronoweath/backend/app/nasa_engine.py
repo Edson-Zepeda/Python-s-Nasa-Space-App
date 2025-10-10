@@ -9,6 +9,7 @@ import xarray as xr
 import earthaccess as ea
 from pydap.cas.urs import setup_session as urs_setup_session
 import netrc as _netrc
+import re
 
 from .formulas import (
     compute_dew_point,
@@ -61,6 +62,23 @@ def _to_opendap_url(link: str) -> str:
     if "/opendap/" in link:
         return link
     return link.replace("/data/", "/opendap/")
+
+
+def _prefer_server(url: str) -> str:
+    """Map generic GES DISC host to stable collection-specific hosts.
+
+    Some links from CMR use the generic host `data.gesdisc.earthdata.nasa.gov`.
+    In practice, MERRA-2 tends to live under `goldsmr4/5`, and IMERG under
+    `gpm1/2`. Rewriting to those helps avoid intermittent I/O issues.
+    """
+    try:
+        if "MERRA2/" in url:
+            return re.sub(r"https://[^/]+/", "https://goldsmr4.gesdisc.eosdis.nasa.gov/", url)
+        if "GPM_L3" in url or "IMERG" in url:
+            return re.sub(r"https://[^/]+/", "https://gpm1.gesdisc.eosdis.nasa.gov/", url)
+    except Exception:
+        pass
+    return url
 
 
 def _extract_links(granule: Any) -> List[str]:
@@ -183,6 +201,7 @@ def merra2_daily_point(lat: float, lon: float, start: str, end: str) -> Dict[str
     rhmax_list: List[xr.DataArray] = []
 
     for url in urls:
+        url_eff = _prefer_server(url)
         # Usa sesión URS para OPeNDAP con pydap
         try:
             nrc = _netrc.netrc()
@@ -190,11 +209,11 @@ def merra2_daily_point(lat: float, lon: float, start: str, end: str) -> Dict[str
             if not auth:
                 raise RuntimeError("Credenciales URS no encontradas en ~/.netrc")
             username, _, password = auth
-            session = urs_setup_session(username, password, check_url=url)
-            ds = xr.open_dataset(url, engine="pydap", backend_kwargs={"session": session})
+            session = urs_setup_session(username, password, check_url=url_eff)
+            ds = xr.open_dataset(url_eff, engine="pydap", backend_kwargs={"session": session})
         except Exception:
             # Fallback: intenta apertura directa (si el servidor permite cookies ya establecidas)
-            ds = xr.open_dataset(url)
+            ds = xr.open_dataset(url_eff)
         ds = select_point(ds, lat, lon)
 
         T2M = ds["T2M"]
@@ -242,16 +261,17 @@ def imerg_daily_point(lat: float, lon: float, start: str, end: str) -> xr.DataAr
 
     series: List[xr.DataArray] = []
     for url in urls:
+        url_eff = _prefer_server(url)
         try:
             nrc = _netrc.netrc()
             auth = nrc.authenticators("urs.earthdata.nasa.gov")
             if not auth:
                 raise RuntimeError("Credenciales URS no encontradas en ~/.netrc")
             username, _, password = auth
-            session = urs_setup_session(username, password, check_url=url)
-            ds = xr.open_dataset(url, engine="pydap", backend_kwargs={"session": session})
+            session = urs_setup_session(username, password, check_url=url_eff)
+            ds = xr.open_dataset(url_eff, engine="pydap", backend_kwargs={"session": session})
         except Exception:
-            ds = xr.open_dataset(url)
+            ds = xr.open_dataset(url_eff)
         ds = select_point(ds, lat, lon)
         var = "precipitation" if "precipitation" in ds.data_vars else "precipitationCal"
         pr = ds[var]
