@@ -81,6 +81,68 @@ def _prefer_server(url: str) -> str:
     return url
 
 
+def _host_alternatives(url: str) -> List[str]:
+    """Return a list of host alternatives for robustness (goldsmr4↔goldsmr5, gpm1↔gpm2)."""
+    alts: List[str] = []
+    base = _prefer_server(url)
+    alts.append(base)
+    try:
+        if "goldsmr4" in base:
+            alts.append(base.replace("goldsmr4", "goldsmr5"))
+        elif "goldsmr5" in base:
+            alts.append(base.replace("goldsmr5", "goldsmr4"))
+        if "gpm1" in base:
+            alts.append(base.replace("gpm1", "gpm2"))
+        elif "gpm2" in base:
+            alts.append(base.replace("gpm2", "gpm1"))
+    except Exception:
+        pass
+    # Ensure uniqueness preserving order
+    seen = set()
+    ordered: List[str] = []
+    for u in alts:
+        if u not in seen:
+            ordered.append(u)
+            seen.add(u)
+    return ordered
+
+
+def _dap_variants(url: str) -> List[str]:
+    """Generate OPeNDAP endpoint variants accepted by Hyrax/netCDF.
+
+    Some servers deny direct .nc4 access; try explicit DAP endpoints.
+    """
+    variants = [url]
+    if not url.endswith((".dods", ".dap", ".dds", ".das", ".html")):
+        variants.append(url + ".dods")
+        variants.append(url + ".dap")
+    return variants
+
+
+def _open_opendap_dataset(url: str) -> xr.Dataset:
+    """Attempt to open an OPeNDAP dataset trying host and endpoint variants with URS session."""
+    nrc = _netrc.netrc()
+    auth = nrc.authenticators("urs.earthdata.nasa.gov")
+    if not auth:
+        raise RuntimeError("Credenciales URS no encontradas en ~/.netrc")
+    username, _, password = auth
+
+    last_error: Exception | None = None
+    for host_url in _host_alternatives(url):
+        for endpoint in _dap_variants(host_url):
+            try:
+                session = urs_setup_session(username, password, check_url=endpoint)
+                return xr.open_dataset(endpoint, engine="pydap", backend_kwargs={"session": session})
+            except Exception as exc:
+                last_error = exc
+                continue
+    # Final fallback: try direct open (may work if server allows)
+    try:
+        return xr.open_dataset(_prefer_server(url))
+    except Exception as exc:
+        raise exc if last_error is None else last_error
+
+
 def _extract_links(granule: Any) -> List[str]:
     """Try multiple earthaccess APIs to extract downloadable links from a granule."""
     # Prefer newer API first
@@ -201,19 +263,7 @@ def merra2_daily_point(lat: float, lon: float, start: str, end: str) -> Dict[str
     rhmax_list: List[xr.DataArray] = []
 
     for url in urls:
-        url_eff = _prefer_server(url)
-        # Usa sesión URS para OPeNDAP con pydap
-        try:
-            nrc = _netrc.netrc()
-            auth = nrc.authenticators("urs.earthdata.nasa.gov")
-            if not auth:
-                raise RuntimeError("Credenciales URS no encontradas en ~/.netrc")
-            username, _, password = auth
-            session = urs_setup_session(username, password, check_url=url_eff)
-            ds = xr.open_dataset(url_eff, engine="pydap", backend_kwargs={"session": session})
-        except Exception:
-            # Fallback: intenta apertura directa (si el servidor permite cookies ya establecidas)
-            ds = xr.open_dataset(url_eff)
+        ds = _open_opendap_dataset(url)
         ds = select_point(ds, lat, lon)
 
         T2M = ds["T2M"]
@@ -261,17 +311,7 @@ def imerg_daily_point(lat: float, lon: float, start: str, end: str) -> xr.DataAr
 
     series: List[xr.DataArray] = []
     for url in urls:
-        url_eff = _prefer_server(url)
-        try:
-            nrc = _netrc.netrc()
-            auth = nrc.authenticators("urs.earthdata.nasa.gov")
-            if not auth:
-                raise RuntimeError("Credenciales URS no encontradas en ~/.netrc")
-            username, _, password = auth
-            session = urs_setup_session(username, password, check_url=url_eff)
-            ds = xr.open_dataset(url_eff, engine="pydap", backend_kwargs={"session": session})
-        except Exception:
-            ds = xr.open_dataset(url_eff)
+        ds = _open_opendap_dataset(url)
         ds = select_point(ds, lat, lon)
         var = "precipitation" if "precipitation" in ds.data_vars else "precipitationCal"
         pr = ds[var]
