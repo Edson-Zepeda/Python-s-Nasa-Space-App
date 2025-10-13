@@ -11,6 +11,7 @@ import json
 import os
 import uuid
 from datetime import date
+import logging
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -104,6 +105,13 @@ else:
 # ---------------------------------------------------------------------------
 
 app = FastAPI(title="Cronoweath Probability API", version="v1")
+# Optional logging level for internal engines
+_log_level = os.getenv("CRONOWEATH_LOG", "").strip().upper()
+if _log_level:
+    try:
+        logging.basicConfig(level=getattr(logging, _log_level, logging.INFO))
+    except Exception:
+        logging.basicConfig(level=logging.INFO)
 # CORS configuration
 _origins_raw = os.getenv("FRONTEND_ORIGINS", "http://localhost:5173,https://cronoweath.wiki,https://www.cronoweath.wiki").split(",")
 _origins = [origin.strip() for origin in _origins_raw if origin.strip()] or ["*"]
