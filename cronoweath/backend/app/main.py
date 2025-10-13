@@ -402,8 +402,14 @@ def _compute_query_response(req: QueryRequest) -> Dict[str, Any]:
     return response_payload
 
 
-@app.post("/query", response_model=QueryResponse)
-def query(req: QueryRequest):
+@app.post("/query")
+def query(req: QueryRequest, bg: BackgroundTasks):
+    always_async = os.getenv("ALWAYS_ASYNC", "false").lower() == "true"
+    if always_async:
+        query_id = "q_" + uuid.uuid4().hex[:10]
+        TASKS[query_id] = {"status": "running"}
+        bg.add_task(_bg_compute, req.model_dump(), query_id)
+        return JSONResponse(status_code=202, content={"query_id": query_id, "status": "running"})
     return _compute_query_response(req)
 
 
