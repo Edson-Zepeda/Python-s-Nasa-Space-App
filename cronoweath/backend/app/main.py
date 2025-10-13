@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import numpy as np
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse, RedirectResponse
 
@@ -105,6 +105,14 @@ else:
 # ---------------------------------------------------------------------------
 
 app = FastAPI(title="Cronoweath Probability API", version="v1")
+# Optional logging level for internal engines
+_log_level = os.getenv("CRONOWEATH_LOG", "").strip().upper()
+if _log_level:
+    import logging as _logging
+    try:
+        _logging.basicConfig(level=getattr(_logging, _log_level, _logging.INFO))
+    except Exception:
+        _logging.basicConfig(level=_logging.INFO)
 # Optional logging level for internal engines
 _log_level = os.getenv("CRONOWEATH_LOG", "").strip().upper()
 if _log_level:
@@ -283,8 +291,7 @@ def conditions() -> Dict[str, Any]:
     }
 
 
-@app.post("/query", response_model=QueryResponse)
-def query(req: QueryRequest):
+def _compute_query_response(req: QueryRequest) -> Dict[str, Any]:
     condition_conf = CONF["conditions"][req.condition]
     thresholds = _resolve_thresholds(req.condition, req.thresholds)
     logic = _resolve_logic(req.logic, req.condition)
@@ -393,6 +400,48 @@ def query(req: QueryRequest):
         response_payload = {k: v for k, v in response_payload.items() if k in keep}
 
     return response_payload
+
+
+@app.post("/query", response_model=QueryResponse)
+def query(req: QueryRequest):
+    return _compute_query_response(req)
+
+
+# ----------------------------
+# Async task-based querying
+# ----------------------------
+TASKS: Dict[str, Dict[str, Any]] = {}
+
+
+def _bg_compute(req_dict: Dict[str, Any], query_id: str):
+    try:
+        req = QueryRequest(**req_dict)
+        result = _compute_query_response(req)
+        STORE[query_id] = {**result, "timeseries": result.get("timeseries")}
+        TASKS[query_id] = {"status": "done"}
+    except Exception as exc:  # pragma: no cover - external services
+        TASKS[query_id] = {"status": "error", "message": f"{exc}"}
+
+
+@app.post("/query_async")
+def query_async(req: QueryRequest, bg: BackgroundTasks):
+    query_id = "q_" + uuid.uuid4().hex[:10]
+    TASKS[query_id] = {"status": "running"}
+    bg.add_task(_bg_compute, req.model_dump(), query_id)
+    return {"query_id": query_id, "status": "running"}
+
+
+@app.get("/result")
+def result(query_id: str = Query(...)):
+    if query_id in STORE:
+        return STORE[query_id]
+    task = TASKS.get(query_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="query_id not found")
+    if task.get("status") == "error":
+        raise HTTPException(status_code=400, detail=task.get("message", "task failed"))
+    # running
+    return JSONResponse(status_code=202, content={"status": "running"})
 
 
 @app.get("/download")

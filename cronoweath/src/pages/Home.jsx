@@ -485,27 +485,64 @@ const Home = () => {
             return { condition: conditionKey, status: "error", message: "Falta ubicacion" };
           }
           try {
-            const response = await fetch(`${API_BASE_URL}/query`, {
+            // Async mode: inicia tarea y luego hace polling de /result
+            const startResp = await fetch(`${API_BASE_URL}/query_async`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(payload),
               signal: controller.signal,
             });
-
-            if (!response.ok) {
-              const detail = await response.json().catch(() => null);
+            if (!startResp.ok) {
+              const detail = await startResp.json().catch(() => null);
               const message =
                 typeof detail?.detail === "string"
                   ? detail.detail
-                  : `Error ${response.status} al consultar la condicion ${conditionKey}`;
+                  : `Error ${startResp.status} al iniciar la condicion ${conditionKey}`;
               return { condition: conditionKey, status: "error", message };
             }
-
-            const data = await response.json();
-            if (data?.status === "insufficient_sample") {
-              return { condition: conditionKey, status: "insufficient", payload: data };
+            const started = await startResp.json();
+            const qid = started?.query_id;
+            if (!qid) {
+              return { condition: conditionKey, status: "error", message: "No query_id" };
             }
-            if (!data?.query_id) {
+
+            const startedAt = Date.now();
+            const maxWaitMs = 25000; // 25s máximo
+            let readyData = null;
+
+            while (Date.now() - startedAt < maxWaitMs) {
+              await new Promise((r) => setTimeout(r, 1200));
+              const res = await fetch(`${API_BASE_URL}/result?query_id=${encodeURIComponent(qid)}`, {
+                method: "GET",
+                signal: controller.signal,
+              });
+              if (res.status === 202) {
+                continue; // sigue esperando
+              }
+              if (!res.ok) {
+                const errDetail = await res.json().catch(() => null);
+                const message =
+                  typeof errDetail?.detail === "string"
+                    ? errDetail.detail
+                    : `Error ${res.status} al obtener la condicion ${conditionKey}`;
+                return { condition: conditionKey, status: "error", message };
+              }
+              readyData = await res.json();
+              break;
+            }
+
+            if (!readyData) {
+              return {
+                condition: conditionKey,
+                status: "error",
+                message: "Tiempo de espera agotado (async)",
+              };
+            }
+
+            if (readyData?.status === "insufficient_sample") {
+              return { condition: conditionKey, status: "insufficient", payload: readyData };
+            }
+            if (!readyData?.query_id) {
               return {
                 condition: conditionKey,
                 status: "error",
@@ -513,12 +550,12 @@ const Home = () => {
               };
             }
             const view = prepareConditionViewData({
-              response: data,
+              response: readyData,
               condition: conditionKey,
               selectedDate,
               locationLabel: resolvedLocation.label,
             });
-            return { condition: conditionKey, status: "ok", payload: data, view };
+            return { condition: conditionKey, status: "ok", payload: readyData, view };
           } catch (error) {
             if (controller.signal.aborted) {
               return { condition: conditionKey, status: "aborted" };
