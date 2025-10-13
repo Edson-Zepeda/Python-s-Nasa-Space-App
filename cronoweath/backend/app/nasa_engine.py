@@ -114,13 +114,24 @@ def _host_alternatives(url: str) -> List[str]:
 def _dap_variants(url: str) -> List[str]:
     """Generate OPeNDAP endpoint variants accepted by Hyrax/netCDF.
 
-    Some servers deny direct .nc4 access; try explicit DAP endpoints.
+    Prefer explicit DAP endpoints (.dods/.dap). We'll keep raw url only as
+    very last fallback elsewhere.
     """
-    variants = [url]
-    if not url.endswith((".dods", ".dap", ".dds", ".das", ".html")):
-        variants.append(url + ".dods")
-        variants.append(url + ".dap")
-    return variants
+    if url.endswith((".dods", ".dap")):
+        return [url]
+    return [url + ".dods", url + ".dap"]
+
+
+def _to_dds(endpoint: str) -> str:
+    if endpoint.endswith(".dods"):
+        return endpoint[:-5] + ".dds"
+    if endpoint.endswith(".dap"):
+        return endpoint[:-4] + ".dds"
+    if endpoint.endswith(".html"):
+        return endpoint[:-5] + ".dds"
+    if endpoint.endswith(".dds"):
+        return endpoint
+    return endpoint + ".dds"
 
 
 def _open_opendap_dataset(url: str) -> xr.Dataset:
@@ -145,6 +156,12 @@ def _open_opendap_dataset(url: str) -> xr.Dataset:
                 session = urs_setup_session(username, password, check_url=endpoint)
                 # Inject per-request timeout into the session
                 session.request = functools.partial(session.request, timeout=timeout_s)  # type: ignore[attr-defined]
+                # Quick probe on .dds to avoid hanging inside pydap/xarray
+                probe = _to_dds(endpoint)
+                logger.info("OPeNDAP probe=%s timeout=%ss", probe, timeout_s)
+                resp = session.get(probe)
+                if getattr(resp, "status_code", 200) >= 400:
+                    raise RuntimeError(f"probe failed code={getattr(resp,'status_code',None)} url={probe}")
                 logger.info("OPeNDAP try endpoint=%s timeout=%ss", endpoint, timeout_s)
                 ds = xr.open_dataset(endpoint, engine="pydap", backend_kwargs={"session": session})
                 logger.info("OPeNDAP success endpoint=%s took=%.2fs", endpoint, time.monotonic() - t0)
