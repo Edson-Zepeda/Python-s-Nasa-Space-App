@@ -10,6 +10,10 @@ import earthaccess as ea
 from pydap.cas.urs import setup_session as urs_setup_session
 import netrc as _netrc
 import re
+import os
+import time
+import logging
+import functools
 
 from .formulas import (
     compute_dew_point,
@@ -120,7 +124,14 @@ def _dap_variants(url: str) -> List[str]:
 
 
 def _open_opendap_dataset(url: str) -> xr.Dataset:
-    """Attempt to open an OPeNDAP dataset trying host and endpoint variants with URS session."""
+    """Attempt to open an OPeNDAP dataset trying host and endpoint variants with URS session.
+
+    Adds detailed logging and short, bounded timeouts to avoid edge timeouts (502).
+    """
+    logger = logging.getLogger("cronoweath.nasa")
+    timeout_s = float(os.getenv("NASA_DAP_TIMEOUT", "12"))  # per attempt
+    max_total_s = float(os.getenv("NASA_DAP_TOTAL", "22"))   # hard stop to avoid 20s edge limit
+    t0 = time.monotonic()
     nrc = _netrc.netrc()
     auth = nrc.authenticators("urs.earthdata.nasa.gov")
     if not auth:
@@ -132,14 +143,26 @@ def _open_opendap_dataset(url: str) -> xr.Dataset:
         for endpoint in _dap_variants(host_url):
             try:
                 session = urs_setup_session(username, password, check_url=endpoint)
-                return xr.open_dataset(endpoint, engine="pydap", backend_kwargs={"session": session})
+                # Inject per-request timeout into the session
+                session.request = functools.partial(session.request, timeout=timeout_s)  # type: ignore[attr-defined]
+                logger.info("OPeNDAP try endpoint=%s timeout=%ss", endpoint, timeout_s)
+                ds = xr.open_dataset(endpoint, engine="pydap", backend_kwargs={"session": session})
+                logger.info("OPeNDAP success endpoint=%s took=%.2fs", endpoint, time.monotonic() - t0)
+                return ds
             except Exception as exc:
                 last_error = exc
+                logger.warning("OPeNDAP fail endpoint=%s err=%s", endpoint, exc)
+                if (time.monotonic() - t0) > max_total_s:
+                    logger.error("OPeNDAP abort after %.2fs (edge timeout guard)", time.monotonic() - t0)
+                    raise last_error
                 continue
     # Final fallback: try direct open (may work if server allows)
     try:
-        return xr.open_dataset(_prefer_server(url))
+        endpoint = _prefer_server(url)
+        logger.info("OPeNDAP fallback open raw url=%s", endpoint)
+        return xr.open_dataset(endpoint)
     except Exception as exc:
+        logger.error("OPeNDAP fallback failed url=%s err=%s", endpoint, exc)
         raise exc if last_error is None else last_error
 
 
