@@ -404,7 +404,9 @@ def _compute_query_response(req: QueryRequest) -> Dict[str, Any]:
 
 @app.post("/query")
 def query(req: QueryRequest, bg: BackgroundTasks):
-    always_async = os.getenv("ALWAYS_ASYNC", "false").lower() == "true"
+    # For remote engines (NASA/Meteomatics) default to async to avoid edge timeouts.
+    default_async = "true" if _ENGINE_KIND in ("nasa", "meteomatics") else "false"
+    always_async = os.getenv("ALWAYS_ASYNC", default_async).lower() == "true"
     if always_async:
         query_id = "q_" + uuid.uuid4().hex[:10]
         TASKS[query_id] = {"status": "running"}

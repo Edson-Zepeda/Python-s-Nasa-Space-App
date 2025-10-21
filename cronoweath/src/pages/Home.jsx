@@ -507,7 +507,7 @@ const Home = () => {
             }
 
             const startedAt = Date.now();
-            const maxWaitMs = 25000; // 25s máximo
+            const maxWaitMs = Number(import.meta.env?.VITE_MAX_WAIT_MS ?? 60000); // extendible por env
             let readyData = null;
 
             while (Date.now() - startedAt < maxWaitMs) {
