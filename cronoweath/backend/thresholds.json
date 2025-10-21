@@ -1,8 +1,8 @@
 {
-  "window_days": 15,
+  "window_days": 10,
   "years_mode": "lastN",
-  "lastN_years": 20,
-  "min_sample_size": 300,
+  "lastN_years": 10,
+  "min_sample_size": 200,
   "units_ui": "toggle", 
   "outlier_clip": [1, 99],
   "gust_proxy_percentile": 95,
@@ -41,4 +41,3 @@
     "muggy": { "HI_min": [27,46], "Td_min": [16,26] }
   }
 }
-
