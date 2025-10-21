@@ -478,139 +478,124 @@ const Home = () => {
     setStep("results");
 
     try {
-      const responses = await Promise.all(
-        conditionKeys.map(async (conditionKey) => {
-          const payload = buildQueryPayload(conditionKey, targetDay);
-          if (!payload) {
-            return { condition: conditionKey, status: "error", message: "Falta ubicacion" };
+      // Ejecuta las condiciones de forma SECUENCIAL para evitar saturar el backend/NASA
+      const nextResults = {};
+      let firstOk = null;
+      let okCount = 0;
+
+      for (const conditionKey of conditionKeys) {
+        if (controller.signal.aborted) break;
+
+        const payload = buildQueryPayload(conditionKey, targetDay);
+        if (!payload) {
+          nextResults[conditionKey] = { status: "error", message: "Falta ubicacion", probability: null };
+          continue;
+        }
+
+        try {
+          // Async mode: inicia tarea y hace polling hasta completar
+          const startResp = await fetch(`${API_BASE_URL}/query_async`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+            signal: controller.signal,
+          });
+          if (!startResp.ok) {
+            const detail = await startResp.json().catch(() => null);
+            const message =
+              typeof detail?.detail === "string"
+                ? detail.detail
+                : `Error ${startResp.status} al iniciar la condicion ${conditionKey}`;
+            nextResults[conditionKey] = { status: "error", message, probability: null };
+            continue;
           }
-          try {
-            // Async mode: inicia tarea y luego hace polling de /result
-            const startResp = await fetch(`${API_BASE_URL}/query_async`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload),
+
+          const started = await startResp.json();
+          const qid = started?.query_id;
+          if (!qid) {
+            nextResults[conditionKey] = { status: "error", message: "No query_id", probability: null };
+            continue;
+          }
+
+          const startedAt = Date.now();
+          const maxWaitMs = Number(import.meta.env?.VITE_MAX_WAIT_MS ?? 60000); // extendible por env
+          let readyData = null;
+          while (Date.now() - startedAt < maxWaitMs) {
+            await new Promise((r) => setTimeout(r, 1200));
+            const res = await fetch(`${API_BASE_URL}/result?query_id=${encodeURIComponent(qid)}`, {
+              method: "GET",
               signal: controller.signal,
             });
-            if (!startResp.ok) {
-              const detail = await startResp.json().catch(() => null);
+            if (res.status === 202) {
+              continue; // sigue esperando
+            }
+            if (!res.ok) {
+              const errDetail = await res.json().catch(() => null);
               const message =
-                typeof detail?.detail === "string"
-                  ? detail.detail
-                  : `Error ${startResp.status} al iniciar la condicion ${conditionKey}`;
-              return { condition: conditionKey, status: "error", message };
-            }
-            const started = await startResp.json();
-            const qid = started?.query_id;
-            if (!qid) {
-              return { condition: conditionKey, status: "error", message: "No query_id" };
-            }
-
-            const startedAt = Date.now();
-            const maxWaitMs = Number(import.meta.env?.VITE_MAX_WAIT_MS ?? 60000); // extendible por env
-            let readyData = null;
-
-            while (Date.now() - startedAt < maxWaitMs) {
-              await new Promise((r) => setTimeout(r, 1200));
-              const res = await fetch(`${API_BASE_URL}/result?query_id=${encodeURIComponent(qid)}`, {
-                method: "GET",
-                signal: controller.signal,
-              });
-              if (res.status === 202) {
-                continue; // sigue esperando
-              }
-              if (!res.ok) {
-                const errDetail = await res.json().catch(() => null);
-                const message =
-                  typeof errDetail?.detail === "string"
-                    ? errDetail.detail
-                    : `Error ${res.status} al obtener la condicion ${conditionKey}`;
-                return { condition: conditionKey, status: "error", message };
-              }
-              readyData = await res.json();
+                typeof errDetail?.detail === "string"
+                  ? errDetail.detail
+                  : `Error ${res.status} al obtener la condicion ${conditionKey}`;
+              nextResults[conditionKey] = { status: "error", message, probability: null };
               break;
             }
+            readyData = await res.json();
+            break;
+          }
 
-            if (!readyData) {
-              return {
-                condition: conditionKey,
-                status: "error",
-                message: "Tiempo de espera agotado (async)",
-              };
-            }
+          if (!readyData) {
+            nextResults[conditionKey] = {
+              status: "error",
+              message: "Tiempo de espera agotado (async)",
+              probability: null,
+            };
+            continue;
+          }
 
-            if (readyData?.status === "insufficient_sample") {
-              return { condition: conditionKey, status: "insufficient", payload: readyData };
-            }
-            if (!readyData?.query_id) {
-              return {
-                condition: conditionKey,
-                status: "error",
-                message: "Respuesta inesperada del servicio.",
-              };
-            }
+          if (readyData?.status === "insufficient_sample") {
+            nextResults[conditionKey] = { status: "insufficient", payload: readyData, probability: null };
+          } else if (!readyData?.query_id) {
+            nextResults[conditionKey] = {
+              status: "error",
+              message: "Respuesta inesperada del servicio.",
+              probability: null,
+            };
+          } else {
             const view = prepareConditionViewData({
               response: readyData,
               condition: conditionKey,
               selectedDate,
               locationLabel: resolvedLocation.label,
             });
-            return { condition: conditionKey, status: "ok", payload: readyData, view };
-          } catch (error) {
-            if (controller.signal.aborted) {
-              return { condition: conditionKey, status: "aborted" };
-            }
-            return {
-              condition: conditionKey,
+            nextResults[conditionKey] = {
+              status: "ok",
+              payload: readyData,
+              view,
+              probability: view?.probability ?? null,
+            };
+            okCount += 1;
+            if (!firstOk) firstOk = conditionKey;
+          }
+
+          // Publica progreso parcial para mejorar UX
+          setResultsByCondition((prev) => ({ ...prev, [conditionKey]: nextResults[conditionKey] }));
+          setActiveCondition((prev) => (prev ?? firstOk ?? conditionKey));
+        } catch (error) {
+          if (controller.signal.aborted) {
+            nextResults[conditionKey] = { status: "aborted" };
+          } else {
+            nextResults[conditionKey] = {
               status: "error",
-              message:
-                error instanceof Error ? error.message : "Error desconocido al consultar datos.",
+              message: error instanceof Error ? error.message : "Error desconocido al consultar datos.",
+              probability: null,
             };
           }
-        }),
-      );
-
-      const nextResults = {};
-      let firstOk = null;
-      let okCount = 0;
-
-      responses.forEach((item) => {
-        if (item.status === "aborted") {
-          return;
+          setResultsByCondition((prev) => ({ ...prev, [conditionKey]: nextResults[conditionKey] }));
         }
-        if (item.status === "ok") {
-          okCount += 1;
-          nextResults[item.condition] = {
-            status: "ok",
-            payload: item.payload,
-            view: item.view,
-            probability: item.view?.probability ?? null,
-          };
-          if (!firstOk) {
-            firstOk = item.condition;
-          }
-        } else if (item.status === "insufficient") {
-          nextResults[item.condition] = {
-            status: "insufficient",
-            payload: item.payload,
-            probability: null,
-          };
-        } else {
-          nextResults[item.condition] = {
-            status: "error",
-            message: item.message ?? "No se pudo consultar esta condicion.",
-            probability: null,
-          };
-        }
-      });
+      }
 
-      setResultsByCondition(nextResults);
-      setActiveCondition((prev) => {
-        if (prev && nextResults[prev]) {
-          return prev;
-        }
-        return firstOk ?? conditionKeys[0];
-      });
+      // Estado final
+      setResultsByCondition((prev) => ({ ...prev, ...nextResults }));
+      setActiveCondition((prev) => (prev ?? firstOk ?? conditionKeys[0]));
 
       if (okCount === 0) {
         setResultsError("No se pudo calcular ninguna condicion para la seleccion realizada.");

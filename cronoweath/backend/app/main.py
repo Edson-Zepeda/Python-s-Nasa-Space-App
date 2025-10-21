@@ -312,6 +312,7 @@ def _compute_query_response(req: QueryRequest) -> Dict[str, Any]:
                 target_day,
                 years=years,
                 window=req.window_days,
+                condition=req.condition,
             )
         else:
             timeseries = data_engine.assemble_series(

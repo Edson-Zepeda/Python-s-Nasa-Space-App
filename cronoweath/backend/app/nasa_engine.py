@@ -304,6 +304,11 @@ def merra2_daily_point(lat: float, lon: float, start: str, end: str) -> Dict[str
 
     for url in urls:
         ds = _open_opendap_dataset(url)
+        # Recorta por tiempo lo antes posible para reducir I/O
+        try:
+            ds = ds.sel(time=slice(start, end))
+        except Exception:
+            pass
         ds = select_point(ds, lat, lon)
 
         T2M = ds["T2M"]
@@ -352,6 +357,11 @@ def imerg_daily_point(lat: float, lon: float, start: str, end: str) -> xr.DataAr
     series: List[xr.DataArray] = []
     for url in urls:
         ds = _open_opendap_dataset(url)
+        # Recorta por tiempo lo antes posible
+        try:
+            ds = ds.sel(time=slice(start, end))
+        except Exception:
+            pass
         ds = select_point(ds, lat, lon)
         var = "precipitation" if "precipitation" in ds.data_vars else "precipitationCal"
         pr = ds[var]
@@ -377,17 +387,22 @@ def assemble_series_real(
     target_day: int,
     years: int = 20,
     window: int = 15,
+    condition: str | None = None,
 ) -> List[Dict[str, Any]]:
     start_iso, end_iso = daterange_around(target_month, target_day, years, window)
 
     merra_data = merra2_daily_point(lat, lon, start_iso, end_iso)
-    imerg_data = imerg_daily_point(lat, lon, start_iso, end_iso)
+    need_precip = (condition == "wet")
+    imerg_data = None
+    if need_precip:
+        imerg_data = imerg_daily_point(lat, lon, start_iso, end_iso)
 
     pieces: List[xr.DataArray] = []
     for name, data_array in merra_data.items():
         if data_array is not None:
             pieces.append(data_array.rename(name))
-    pieces.append(imerg_data.rename("precip_daily"))
+    if imerg_data is not None:
+        pieces.append(imerg_data.rename("precip_daily"))
 
     ds = xr.merge(pieces).sortby("time")
 
